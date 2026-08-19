@@ -14,10 +14,12 @@ export class GridManager {
     this.step = BLOCK_SIZE + ROAD_WIDTH;
     this.totalSize = GRID_SIZE * this.step;
     this.halfExtent = this.totalSize / 2;
+    this.swOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2;
 
     this.createGround();
     this.createRoads();
-    this.createIntersections();
+    this.createSidewalks();
+    this.createCrosswalks();
     this.createBuildings();
   }
 
@@ -34,7 +36,6 @@ export class GridManager {
 
   createRoads() {
     const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
-    const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.8 });
     const dashMat = new THREE.MeshStandardMaterial({ color: 0xffff00, roughness: 0.7 });
 
     for (let i = 0; i <= GRID_SIZE; i++) {
@@ -54,31 +55,8 @@ export class GridManager {
       vRoad.receiveShadow = true;
       this.scene.add(vRoad);
 
-      this.addSidewalksFull(pos, 'horizontal', sidewalkMat);
-      this.addSidewalksFull(pos, 'vertical', sidewalkMat);
       this.addCenterLineFull(pos, 'horizontal', dashMat);
       this.addCenterLineFull(pos, 'vertical', dashMat);
-    }
-  }
-
-  addSidewalksFull(pos, orientation, mat) {
-    const swLen = this.totalSize + ROAD_WIDTH + SIDEWALK_WIDTH * 2;
-    const swGeo = new THREE.BoxGeometry(
-      orientation === 'horizontal' ? swLen : SIDEWALK_WIDTH,
-      SIDEWALK_HEIGHT,
-      orientation === 'horizontal' ? SIDEWALK_WIDTH : swLen
-    );
-
-    for (const side of [-1, 1]) {
-      const sw = new THREE.Mesh(swGeo, mat);
-      if (orientation === 'horizontal') {
-        sw.position.set(0, SIDEWALK_HEIGHT / 2, pos + side * (ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2));
-      } else {
-        sw.position.set(pos + side * (ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2), SIDEWALK_HEIGHT / 2, 0);
-      }
-      sw.castShadow = true;
-      sw.receiveShadow = true;
-      this.scene.add(sw);
     }
   }
 
@@ -107,8 +85,42 @@ export class GridManager {
     }
   }
 
-  createIntersections() {
-    const crossMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+  createSidewalks() {
+    const mat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.8 });
+    const segLen = BLOCK_SIZE - ROAD_WIDTH;
+
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const blockCx = -this.halfExtent + r * this.step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
+        const blockCz = -this.halfExtent + c * this.step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
+
+        this.addSidewalkSegment(blockCx, blockCz - this.swOffset, segLen, 'horizontal', mat);
+        this.addSidewalkSegment(blockCx, blockCz + this.swOffset, segLen, 'horizontal', mat);
+        this.addSidewalkSegment(blockCx - this.swOffset, blockCz, segLen, 'vertical', mat);
+        this.addSidewalkSegment(blockCx + this.swOffset, blockCz, segLen, 'vertical', mat);
+      }
+    }
+  }
+
+  addSidewalkSegment(cx, cz, length, orientation, mat) {
+    const geo = new THREE.BoxGeometry(
+      orientation === 'horizontal' ? length : SIDEWALK_WIDTH,
+      SIDEWALK_HEIGHT,
+      orientation === 'horizontal' ? SIDEWALK_WIDTH : length
+    );
+    const sw = new THREE.Mesh(geo, mat);
+    sw.position.set(cx, SIDEWALK_HEIGHT / 2, cz);
+    sw.castShadow = true;
+    sw.receiveShadow = true;
+    this.scene.add(sw);
+  }
+
+  createCrosswalks() {
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+    const stripeLen = SIDEWALK_WIDTH + 1;
+    const stripes = 5;
+    const stripeGap = 1.2;
+    const stripeWidth = 0.8;
 
     for (let r = 0; r <= GRID_SIZE; r++) {
       for (let c = 0; c <= GRID_SIZE; c++) {
@@ -116,59 +128,85 @@ export class GridManager {
         const iz = -this.halfExtent + c * this.step;
         this.intersections.push({ x: ix, z: iz });
 
-        this.addCrosswalk(ix, iz, 'horizontal', crossMat);
-        this.addCrosswalk(ix, iz, 'vertical', crossMat);
+        const corners = [
+          { x: ix - this.swOffset, z: iz - this.swOffset, ax: 'z', sign: -1 },
+          { x: ix + this.swOffset, z: iz - this.swOffset, ax: 'x', sign:  1 },
+          { x: ix - this.swOffset, z: iz + this.swOffset, ax: 'x', sign: -1 },
+          { x: ix + this.swOffset, z: iz + this.swOffset, ax: 'z', sign:  1 }
+        ];
+
+        for (const corner of corners) {
+          for (let i = 0; i < stripes; i++) {
+            const offset = (i - stripes / 2 + 0.5) * stripeGap;
+            const geo = new THREE.PlaneGeometry(stripeWidth, stripeLen);
+            const stripe = new THREE.Mesh(geo, mat);
+            stripe.rotation.x = -Math.PI / 2;
+            stripe.position.y = 0.025;
+
+            if (corner.ax === 'z') {
+              stripe.rotation.z = Math.PI / 2;
+              stripe.position.set(
+                corner.x + corner.sign * stripeLen / 2,
+                0.025,
+                corner.z + offset
+              );
+            } else {
+              stripe.position.set(
+                corner.x + offset,
+                0.025,
+                corner.z + corner.sign * stripeLen / 2
+              );
+            }
+
+            stripe.receiveShadow = true;
+            this.scene.add(stripe);
+          }
+        }
       }
-    }
-  }
-
-  addCrosswalk(ix, iz, orientation, mat) {
-    const stripes = 5;
-    const stripeGap = 1.2;
-    const crossLength = ROAD_WIDTH;
-
-    const stripeGeo = new THREE.PlaneGeometry(1.5, crossLength);
-
-    for (let i = 0; i < stripes; i++) {
-      const stripe = new THREE.Mesh(stripeGeo, mat);
-      stripe.rotation.x = -Math.PI / 2;
-      stripe.position.y = 0.02;
-
-      if (orientation === 'horizontal') {
-        stripe.rotation.z = Math.PI / 2;
-        stripe.position.x = ix + (i - stripes / 2 + 0.5) * stripeGap;
-        stripe.position.z = iz;
-      } else {
-        stripe.position.x = ix;
-        stripe.position.z = iz + (i - stripes / 2 + 0.5) * stripeGap;
-      }
-
-      stripe.receiveShadow = true;
-      this.scene.add(stripe);
     }
   }
 
   createBuildings() {
     for (let r = 0; r < GRID_SIZE; r++) {
       for (let c = 0; c < GRID_SIZE; c++) {
-        const bx = -this.halfExtent + r * this.step + ROAD_WIDTH + BLOCK_SIZE / 2;
-        const bz = -this.halfExtent + c * this.step + ROAD_WIDTH + BLOCK_SIZE / 2;
+        const bx = -this.halfExtent + r * this.step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
+        const bz = -this.halfExtent + c * this.step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
         this.addBuildingBlock(bx, bz, BLOCK_SIZE);
       }
     }
   }
 
   addBuildingBlock(cx, cz, size) {
-    const padding = SIDEWALK_WIDTH + 2;
+    const sidewalkTotal = ROAD_WIDTH / 2 + SIDEWALK_WIDTH;
+    const padding = sidewalkTotal + 2;
     const usable = size - padding * 2;
     const numBuildings = Math.floor(Math.random() * 2) + 1;
 
     if (numBuildings === 1) {
       this.addSingleBuilding(cx, cz, usable * 0.85, usable * 0.85);
+    } else if (numBuildings === 2 && Math.random() < 0.2) {
+      this.addThreeBuildings(cx, cz, usable);
     } else {
       const halfUsable = usable / 2 - 1;
       this.addSingleBuilding(cx - halfUsable / 2, cz - halfUsable / 2, halfUsable, halfUsable);
       this.addSingleBuilding(cx + halfUsable / 2, cz + halfUsable / 2, halfUsable, halfUsable);
+    }
+  }
+
+  addThreeBuildings(cx, cz, usable) {
+    const gap = 1.5;
+    const qw = (usable - gap) / 2;
+    const qd = (usable - gap) / 2;
+
+    const positions = [
+      { x: cx - qw / 2 - gap / 2, z: cz - qd / 2 - gap / 2 },
+      { x: cx + qw / 2 + gap / 2, z: cz - qd / 2 - gap / 2 },
+      { x: cx, z: cz + qd / 2 + gap / 2 }
+    ];
+
+    for (const pos of positions) {
+      const scale = 0.75 + Math.random() * 0.15;
+      this.addSingleBuilding(pos.x, pos.z, qw * scale, qd * scale);
     }
   }
 
