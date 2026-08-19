@@ -14,7 +14,7 @@ export class GridManager {
     this.step = BLOCK_SIZE + ROAD_WIDTH;
     this.totalSize = GRID_SIZE * this.step;
     this.halfExtent = this.totalSize / 2;
-    this.swOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2;
+    this.swCenter = ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2;
 
     this.createGround();
     this.createRoads();
@@ -91,13 +91,13 @@ export class GridManager {
 
     for (let r = 0; r < GRID_SIZE; r++) {
       for (let c = 0; c < GRID_SIZE; c++) {
-        const blockCx = -this.halfExtent + r * this.step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
-        const blockCz = -this.halfExtent + c * this.step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
+        const bx = -this.halfExtent + r * this.step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
+        const bz = -this.halfExtent + c * this.step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
 
-        this.addSidewalkSegment(blockCx, blockCz - this.swOffset, segLen, 'horizontal', mat);
-        this.addSidewalkSegment(blockCx, blockCz + this.swOffset, segLen, 'horizontal', mat);
-        this.addSidewalkSegment(blockCx - this.swOffset, blockCz, segLen, 'vertical', mat);
-        this.addSidewalkSegment(blockCx + this.swOffset, blockCz, segLen, 'vertical', mat);
+        this.addSidewalkSegment(bx, bz - this.swCenter, segLen, 'horizontal', mat);
+        this.addSidewalkSegment(bx, bz + this.swCenter, segLen, 'horizontal', mat);
+        this.addSidewalkSegment(bx - this.swCenter, bz, segLen, 'vertical', mat);
+        this.addSidewalkSegment(bx + this.swCenter, bz, segLen, 'vertical', mat);
       }
     }
   }
@@ -117,10 +117,10 @@ export class GridManager {
 
   createCrosswalks() {
     const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
-    const stripeLen = SIDEWALK_WIDTH + 1;
-    const stripes = 5;
-    const stripeGap = 1.2;
+    const stripes = 6;
+    const stripeGap = 1.0;
     const stripeWidth = 0.8;
+    const crossLen = ROAD_WIDTH;
 
     for (let r = 0; r <= GRID_SIZE; r++) {
       for (let c = 0; c <= GRID_SIZE; c++) {
@@ -129,33 +129,32 @@ export class GridManager {
         this.intersections.push({ x: ix, z: iz });
 
         const corners = [
-          { x: ix - this.swOffset, z: iz - this.swOffset, ax: 'z', sign: -1 },
-          { x: ix + this.swOffset, z: iz - this.swOffset, ax: 'x', sign:  1 },
-          { x: ix - this.swOffset, z: iz + this.swOffset, ax: 'x', sign: -1 },
-          { x: ix + this.swOffset, z: iz + this.swOffset, ax: 'z', sign:  1 }
+          { x: ix - this.swCenter, z: iz - this.swCenter, towardX: 1, towardZ: 1 },
+          { x: ix + this.swCenter, z: iz - this.swCenter, towardX: -1, towardZ: 1 },
+          { x: ix - this.swCenter, z: iz + this.swCenter, towardX: 1, towardZ: -1 },
+          { x: ix + this.swCenter, z: iz + this.swCenter, towardX: -1, towardZ: -1 }
         ];
 
         for (const corner of corners) {
+          const endX = corner.x + corner.towardX * crossLen;
+          const endZ = corner.z + corner.towardZ * crossLen;
+          const midX = (corner.x + endX) / 2;
+          const midZ = (corner.z + endZ) / 2;
+          const alongX = Math.abs(corner.towardX);
+          const alongZ = Math.abs(corner.towardZ);
+
           for (let i = 0; i < stripes; i++) {
-            const offset = (i - stripes / 2 + 0.5) * stripeGap;
-            const geo = new THREE.PlaneGeometry(stripeWidth, stripeLen);
+            const off = (i - stripes / 2 + 0.5) * stripeGap;
+            const geo = new THREE.PlaneGeometry(stripeWidth, crossLen);
             const stripe = new THREE.Mesh(geo, mat);
             stripe.rotation.x = -Math.PI / 2;
             stripe.position.y = 0.025;
 
-            if (corner.ax === 'z') {
-              stripe.rotation.z = Math.PI / 2;
-              stripe.position.set(
-                corner.x + corner.sign * stripeLen / 2,
-                0.025,
-                corner.z + offset
-              );
+            if (alongX) {
+              stripe.position.set(midX, 0.025, corner.z + off);
             } else {
-              stripe.position.set(
-                corner.x + offset,
-                0.025,
-                corner.z + corner.sign * stripeLen / 2
-              );
+              stripe.rotation.z = Math.PI / 2;
+              stripe.position.set(corner.x + off, 0.025, midZ);
             }
 
             stripe.receiveShadow = true;
