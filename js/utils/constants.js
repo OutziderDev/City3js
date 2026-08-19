@@ -45,6 +45,20 @@ export const RED_DURATION = 5;
 export const DAY_CYCLE_SPEED = 0.003;
 export const DAY_DURATION = 120;
 
+// Buses
+export const BUS_LENGTH = 8;
+export const BUS_WIDTH = 2.5;
+export const BUS_HEIGHT = 2.8;
+export const BUS_SPEED = 8;
+export const BUS_LIFETIME_MIN = 30;
+export const BUS_LIFETIME_MAX = 60;
+export const BUS_SPAWN_INTERVAL_MIN = 20;
+export const BUS_SPAWN_INTERVAL_MAX = 45;
+export const BUS_MAX_ACTIVE = 3;
+export const BUS_COLORS = [
+  0xffcc00, 0x2255aa, 0xcc2222, 0x22aa44, 0xffffff
+];
+
 // Road directions
 export const DIR_POS_X = 0;
 export const DIR_NEG_X = 1;
