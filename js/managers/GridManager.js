@@ -3,9 +3,9 @@ import {
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH, SIDEWALK_WIDTH, SIDEWALK_HEIGHT,
   MIN_FLOORS, MAX_FLOORS, FLOOR_HEIGHT, BUILDING_COLORS
 } from '../utils/constants.js';
-import { Building } from '../buildings/Building.js';
+import { Building } from '../entities/Building.js';
 
-export class Grid {
+export class GridManager {
   constructor(scene) {
     this.scene = scene;
     this.buildings = [];
@@ -124,11 +124,10 @@ export class Grid {
 
   addCrosswalk(ix, iz, orientation, mat) {
     const stripes = 5;
-    const stripeW = 1.5;
     const stripeGap = 1.2;
     const crossLength = ROAD_WIDTH;
 
-    const stripeGeo = new THREE.PlaneGeometry(stripeW, crossLength);
+    const stripeGeo = new THREE.PlaneGeometry(1.5, crossLength);
 
     for (let i = 0; i < stripes; i++) {
       const stripe = new THREE.Mesh(stripeGeo, mat);

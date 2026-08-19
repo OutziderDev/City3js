@@ -76,7 +76,6 @@ export class TrafficLight {
     this.yellowLight = new THREE.Mesh(lightGeo, this.yellowLightMat);
     this.greenLight = new THREE.Mesh(lightGeo, this.greenLightMat);
 
-    const faceDir = this.orientation === 'horizontal' ? 1 : 1;
     const faceX = this.orientation === 'horizontal' ? 0.15 : 0;
     const faceZ = this.orientation === 'horizontal' ? 0 : 0.15;
 
