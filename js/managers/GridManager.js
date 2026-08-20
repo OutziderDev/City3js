@@ -14,7 +14,7 @@ export class GridManager {
     this.step = BLOCK_SIZE + ROAD_WIDTH;
     this.totalSize = GRID_SIZE * this.step;
     this.halfExtent = this.totalSize / 2;
-    this.swCenter = ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2;
+    this.swCenter = BLOCK_SIZE / 2 - SIDEWALK_WIDTH / 2;
 
     this.createGround();
     this.createRoads();
@@ -87,7 +87,7 @@ export class GridManager {
 
   createSidewalks() {
     const mat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.8 });
-    const segLen = BLOCK_SIZE - ROAD_WIDTH;
+    const segLen = BLOCK_SIZE;
 
     for (let r = 0; r < GRID_SIZE; r++) {
       for (let c = 0; c < GRID_SIZE; c++) {
