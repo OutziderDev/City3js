@@ -83,100 +83,108 @@ export class Building {
 
           this.windowData.push({
             isOn: Math.random() > 0.5,
-            nextChange: Math.random() * 10 + 2
+            nextChange: Math.random() * 15 + 5,
+            matrix: new THREE.Matrix4()
           });
         }
       }
     }
 
-    const count = positions.length;
+    this.windowCount = positions.length;
 
-    this.windowMat = new THREE.MeshStandardMaterial({
-      vertexColors: true,
+    this.matOn = new THREE.MeshStandardMaterial({
+      color: 0xffeebb,
+      emissive: 0xffcc66,
+      emissiveIntensity: 1.0,
       roughness: 0.3,
-      metalness: 0.4,
-      emissive: new THREE.Color(0xffddaa),
-      emissiveIntensity: 0.0
+      metalness: 0.2
     });
 
-    this.windowMesh = new THREE.InstancedMesh(wGeo, this.windowMat, count);
-    this.windowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.matOff = new THREE.MeshStandardMaterial({
+      color: 0x1a2233,
+      roughness: 0.5,
+      metalness: 0.3
+    });
+
+    this.meshOn = new THREE.InstancedMesh(wGeo, this.matOn, this.windowCount);
+    this.meshOff = new THREE.InstancedMesh(wGeo, this.matOff, this.windowCount);
+    this.meshOn.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.meshOff.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
     const dummy = new THREE.Object3D();
-
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < this.windowCount; i++) {
       dummy.position.copy(positions[i]);
       dummy.rotation.copy(rotations[i]);
       dummy.updateMatrix();
-      this.windowMesh.setMatrixAt(i, dummy.matrix);
+      this.windowData[i].matrix.copy(dummy.matrix);
     }
 
-    this.windowMesh.instanceMatrix.needsUpdate = true;
+    this.meshOn.count = 0;
+    this.meshOff.count = 0;
 
-    this.windowColors = new Float32Array(count * 3);
-    this.windowMesh.instanceColor = new THREE.InstancedBufferAttribute(this.windowColors, 3);
-
-    this.updateWindowColors();
-
-    this.group.add(this.windowMesh);
+    this.group.add(this.meshOn);
+    this.group.add(this.meshOff);
   }
 
   updateWindows(dayFactor, deltaTime) {
     const nightFactor = 1 - dayFactor;
     const targetOnRatio = 0.25 + nightFactor * 0.5;
 
-    this.windowMat.emissiveIntensity = nightFactor * 0.9;
-
     let onCount = 0;
     for (const w of this.windowData) {
       if (w.isOn) onCount++;
     }
 
-    const total = this.windowData.length;
-    const currentRatio = onCount / total;
-    const targetOn = Math.round(targetOnRatio * total);
+    const targetOn = Math.round(targetOnRatio * this.windowCount);
 
-    for (let i = 0; i < total; i++) {
+    for (let i = 0; i < this.windowCount; i++) {
       const win = this.windowData[i];
       win.nextChange -= deltaTime;
 
       if (win.nextChange > 0) continue;
 
-      win.nextChange = Math.random() * 3 + 0.5;
+      win.nextChange = Math.random() * 8 + 3;
 
       if (onCount < targetOn && !win.isOn) {
-        if (Math.random() < 0.5) {
+        if (Math.random() < 0.6) {
           win.isOn = true;
           onCount++;
         }
       } else if (onCount > targetOn && win.isOn) {
-        if (Math.random() < 0.5) {
+        if (Math.random() < 0.6) {
           win.isOn = false;
           onCount--;
         }
       } else {
-        if (Math.random() < 0.08) {
+        if (Math.random() < 0.05) {
           win.isOn = !win.isOn;
           onCount += win.isOn ? 1 : -1;
         }
       }
     }
 
-    this.updateWindowColors();
+    this.rebuildWindowInstances();
   }
 
-  updateWindowColors() {
-    const colorOn = new THREE.Color(0xffeebb);
-    const colorOff = new THREE.Color(0x1a2233);
+  rebuildWindowInstances() {
+    let onIdx = 0;
+    let offIdx = 0;
 
-    for (let i = 0; i < this.windowData.length; i++) {
-      const c = this.windowData[i].isOn ? colorOn : colorOff;
-      this.windowColors[i * 3] = c.r;
-      this.windowColors[i * 3 + 1] = c.g;
-      this.windowColors[i * 3 + 2] = c.b;
+    for (let i = 0; i < this.windowCount; i++) {
+      const win = this.windowData[i];
+      if (win.isOn) {
+        this.meshOn.setMatrixAt(onIdx, win.matrix);
+        onIdx++;
+      } else {
+        this.meshOff.setMatrixAt(offIdx, win.matrix);
+        offIdx++;
+      }
     }
 
-    this.windowMesh.instanceColor.needsUpdate = true;
+    this.meshOn.count = onIdx;
+    this.meshOff.count = offIdx;
+    this.meshOn.instanceMatrix.needsUpdate = true;
+    this.meshOff.instanceMatrix.needsUpdate = true;
   }
 
   createRoof() {
