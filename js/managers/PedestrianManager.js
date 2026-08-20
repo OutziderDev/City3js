@@ -15,7 +15,7 @@ export class PedestrianManager {
     const step = BLOCK_SIZE + ROAD_WIDTH;
     const total = GRID_SIZE * step;
     const half = total / 2;
-    const swOffset = ROAD_WIDTH / 2 + 1.5;
+    const swOffset = BLOCK_SIZE / 2 + 1.5;
 
     for (let i = 0; i < PERSON_COUNT; i++) {
       const isHorizontal = Math.random() > 0.5;

@@ -217,4 +217,10 @@ export class GridManager {
     const building = new Building(this.scene, cx, cz, w, d, height, floors, color);
     this.buildings.push(building);
   }
+
+  updateWindows(dayFactor, deltaTime) {
+    for (const building of this.buildings) {
+      building.updateWindows(dayFactor, deltaTime);
+    }
+  }
 }

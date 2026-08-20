@@ -53,6 +53,7 @@ class CityApp {
     this.lastTime = now;
 
     this.dayNight.update(delta);
+    this.grid.updateWindows(this.dayNight.getDayFactor(), delta);
     this.trafficManager.update(delta);
     this.vehicleManager.update(delta, this.trafficManager.trafficLights, this.cityBounds);
     this.pedestrianManager.update(delta, this.cityBounds);

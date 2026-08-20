@@ -152,9 +152,11 @@ export class DayNightCycle {
   }
 
   getHourString() {
-    const hours = Math.floor(this.time * 24);
+    let hours = Math.floor(this.time * 24);
     const minutes = Math.floor((this.time * 24 - hours) * 60);
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${String(h12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
   }
 
   getDayFactor() {
