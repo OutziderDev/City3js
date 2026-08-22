@@ -117,10 +117,6 @@ export class GridManager {
 
   createCrosswalks() {
     const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
-    const stripes = 6;
-    const stripeGap = 1.0;
-    const stripeWidth = 0.8;
-    const crossLen = ROAD_WIDTH;
 
     for (let r = 0; r <= GRID_SIZE; r++) {
       for (let c = 0; c <= GRID_SIZE; c++) {
@@ -128,40 +124,36 @@ export class GridManager {
         const iz = -this.halfExtent + c * this.step;
         this.intersections.push({ x: ix, z: iz });
 
-        const corners = [
-          { x: ix - this.swCenter, z: iz - this.swCenter, towardX: 1, towardZ: 1 },
-          { x: ix + this.swCenter, z: iz - this.swCenter, towardX: -1, towardZ: 1 },
-          { x: ix - this.swCenter, z: iz + this.swCenter, towardX: 1, towardZ: -1 },
-          { x: ix + this.swCenter, z: iz + this.swCenter, towardX: -1, towardZ: -1 }
-        ];
-
-        for (const corner of corners) {
-          const endX = corner.x + corner.towardX * crossLen;
-          const endZ = corner.z + corner.towardZ * crossLen;
-          const midX = (corner.x + endX) / 2;
-          const midZ = (corner.z + endZ) / 2;
-          const alongX = Math.abs(corner.towardX);
-          const alongZ = Math.abs(corner.towardZ);
-
-          for (let i = 0; i < stripes; i++) {
-            const off = (i - stripes / 2 + 0.5) * stripeGap;
-            const geo = new THREE.PlaneGeometry(stripeWidth, crossLen);
-            const stripe = new THREE.Mesh(geo, mat);
-            stripe.rotation.x = -Math.PI / 2;
-            stripe.position.y = 0.025;
-
-            if (alongX) {
-              stripe.position.set(midX, 0.025, corner.z + off);
-            } else {
-              stripe.rotation.z = Math.PI / 2;
-              stripe.position.set(corner.x + off, 0.025, midZ);
-            }
-
-            stripe.receiveShadow = true;
-            this.scene.add(stripe);
-          }
-        }
+        this.addContinentalCrosswalk(ix, iz, 'horizontal', mat);
+        this.addContinentalCrosswalk(ix, iz, 'vertical', mat);
       }
+    }
+  }
+
+  addContinentalCrosswalk(ix, iz, orientation, mat) {
+    const stripeCount = 6;
+    const stripeGap = 0.5;
+    const stripeWidth = 0.5;
+    const stripeLength = ROAD_WIDTH - 2;
+
+    for (let i = 0; i < stripeCount; i++) {
+      const offset = (i - (stripeCount - 1) / 2) * (stripeWidth + stripeGap);
+      const geo = new THREE.PlaneGeometry(
+        orientation === 'horizontal' ? stripeWidth : stripeLength,
+        orientation === 'horizontal' ? stripeLength : stripeWidth
+      );
+      const stripe = new THREE.Mesh(geo, mat);
+      stripe.rotation.x = -Math.PI / 2;
+      stripe.position.y = 0.025;
+
+      if (orientation === 'horizontal') {
+        stripe.position.set(ix + offset, 0.025, iz);
+      } else {
+        stripe.position.set(ix, 0.025, iz + offset);
+      }
+
+      stripe.receiveShadow = true;
+      this.scene.add(stripe);
     }
   }
 
