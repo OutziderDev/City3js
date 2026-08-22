@@ -4,6 +4,7 @@ import {
   MIN_FLOORS, MAX_FLOORS, FLOOR_HEIGHT, BUILDING_COLORS
 } from '../utils/constants.js';
 import { Building } from '../entities/Building.js';
+import { Tree } from '../entities/Tree.js';
 
 export class GridManager {
   constructor(scene) {
@@ -21,6 +22,7 @@ export class GridManager {
     this.createSidewalks();
     this.createCrosswalks();
     this.createBuildings();
+    this.createTrees();
   }
 
   createGround() {
@@ -208,6 +210,48 @@ export class GridManager {
 
     const building = new Building(this.scene, cx, cz, w, d, height, floors, color);
     this.buildings.push(building);
+  }
+
+  createTrees() {
+    const treeOffsets = [
+      { dx: 1, dz: 1 },
+      { dx: -1, dz: 1 },
+      { dx: 1, dz: -1 },
+      { dx: -1, dz: -1 },
+      { dx: 0, dz: 1.4 },
+      { dx: 0, dz: -1.4 },
+      { dx: 1.4, dz: 0 },
+      { dx: -1.4, dz: 0 }
+    ];
+
+    for (const b of this.buildings) {
+      const count = Math.floor(Math.random() * 3) + 2;
+      const shuffled = treeOffsets.sort(() => Math.random() - 0.5);
+
+      let placed = 0;
+      for (const off of shuffled) {
+        if (placed >= count) break;
+        const tx = b.x + off.dx * (b.width / 2 + 1.5);
+        const tz = b.z + off.dz * (b.depth / 2 + 1.5);
+        if (this.isTreeValid(tx, tz, 2)) {
+          new Tree(this.scene, tx, tz);
+          placed++;
+        }
+      }
+    }
+  }
+
+  isTreeValid(x, z, minDist) {
+    for (const b of this.buildings) {
+      const dx = Math.abs(x - b.x);
+      const dz = Math.abs(z - b.z);
+      const overlapX = b.width / 2 + minDist;
+      const overlapZ = b.depth / 2 + minDist;
+      if (dx < overlapX && dz < overlapZ) {
+        return false;
+      }
+    }
+    return true;
   }
 
   updateWindows(dayFactor, deltaTime) {
