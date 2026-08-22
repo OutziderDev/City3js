@@ -149,8 +149,8 @@ export class Bus {
     switch (this.direction) {
       case DIR_POS_X: return -Math.PI / 2;
       case DIR_NEG_X: return Math.PI / 2;
-      case DIR_POS_Z: return Math.PI;
-      case DIR_NEG_Z: return 0;
+      case DIR_POS_Z: return 0;
+      case DIR_NEG_Z: return Math.PI;
     }
   }
 
