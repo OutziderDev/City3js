@@ -8,7 +8,7 @@ import { BusManager } from './managers/BusManager.js';
 import {
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH
 } from './utils/constants.js';
-import { windTime } from './shaders/WindFoliage.js';
+
 
 class CityApp {
   constructor() {
@@ -52,8 +52,6 @@ class CityApp {
     const now = performance.now();
     const delta = Math.min((now - this.lastTime) / 1000, 0.1);
     this.lastTime = now;
-
-    windTime.value += delta;
 
     this.dayNight.update(delta);
     this.grid.updateWindows(this.dayNight.getDayFactor(), delta);
