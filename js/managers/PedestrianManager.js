@@ -1,6 +1,6 @@
 import { Person } from '../entities/Person.js';
 import {
-  PERSON_COUNT, GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH,
+  PERSON_COUNT, GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH, SIDEWALK_WIDTH,
   DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z
 } from '../utils/constants.js';
 
@@ -15,7 +15,12 @@ export class PedestrianManager {
     const step = BLOCK_SIZE + ROAD_WIDTH;
     const total = GRID_SIZE * step;
     const half = total / 2;
-    const swOffset = BLOCK_SIZE / 2 + 1.5;
+    const swOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2;
+
+    const blockCenters = [];
+    for (let i = 0; i < GRID_SIZE; i++) {
+      blockCenters.push(-half + i * step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2);
+    }
 
     for (let i = 0; i < PERSON_COUNT; i++) {
       const isHorizontal = Math.random() > 0.5;
@@ -24,14 +29,14 @@ export class PedestrianManager {
       if (isHorizontal) {
         const row = Math.floor(Math.random() * (GRID_SIZE + 1));
         const side = Math.random() > 0.5 ? 1 : -1;
-        x = -half + Math.random() * total;
+        x = blockCenters[Math.floor(Math.random() * blockCenters.length)];
         z = -half + row * step + ROAD_WIDTH / 2 + side * swOffset;
         dir = Math.random() > 0.5 ? DIR_POS_X : DIR_NEG_X;
       } else {
         const col = Math.floor(Math.random() * (GRID_SIZE + 1));
         const side = Math.random() > 0.5 ? 1 : -1;
         x = -half + col * step + ROAD_WIDTH / 2 + side * swOffset;
-        z = -half + Math.random() * total;
+        z = blockCenters[Math.floor(Math.random() * blockCenters.length)];
         dir = Math.random() > 0.5 ? DIR_POS_Z : DIR_NEG_Z;
       }
 

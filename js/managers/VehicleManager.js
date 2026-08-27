@@ -17,20 +17,25 @@ export class VehicleManager {
     const half = total / 2;
     const laneOffset = ROAD_WIDTH / 4;
 
+    const roadPositions = [];
+    for (let i = 0; i <= GRID_SIZE; i++) {
+      roadPositions.push(-half + i * step + ROAD_WIDTH / 2);
+    }
+
     for (let i = 0; i < CAR_COUNT; i++) {
       const isHorizontal = Math.random() > 0.5;
       let x, z, dir;
 
       if (isHorizontal) {
         const row = Math.floor(Math.random() * (GRID_SIZE + 1));
-        x = -half + Math.random() * total;
         dir = Math.random() > 0.5 ? DIR_POS_X : DIR_NEG_X;
-        z = -half + row * step + ROAD_WIDTH / 2 + (dir === DIR_POS_X ? -laneOffset : laneOffset);
+        x = roadPositions[Math.floor(Math.random() * roadPositions.length)];
+        z = -half + row * step + (dir === DIR_POS_X ? -laneOffset : laneOffset);
       } else {
         const col = Math.floor(Math.random() * (GRID_SIZE + 1));
-        z = -half + Math.random() * total;
         dir = Math.random() > 0.5 ? DIR_POS_Z : DIR_NEG_Z;
-        x = -half + col * step + ROAD_WIDTH / 2 + (dir === DIR_POS_Z ? laneOffset : -laneOffset);
+        z = roadPositions[Math.floor(Math.random() * roadPositions.length)];
+        x = -half + col * step + (dir === DIR_POS_Z ? -laneOffset : laneOffset);
       }
 
       const car = new Car(this.scene, x, z, dir);
