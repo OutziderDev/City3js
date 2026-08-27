@@ -11,6 +11,13 @@ import {
   RAIN_TRANSITION_DURATION
 } from '../utils/constants.js';
 
+const LIGHTNING_PROBABILITY = 0.08;
+const LIGHTNING_COOLDOWN_MIN = 4;
+const LIGHTNING_COOLDOWN_MAX = 12;
+const LIGHTNING_FLASH_DURATION = 0.15;
+const LIGHTNING_BOLT_SEGMENTS = 8;
+const LIGHTNING_BOLT_SPREAD = 15;
+
 export class WeatherManager {
   constructor(scene, dayNightCycle) {
     this.scene = scene;
@@ -28,8 +35,17 @@ export class WeatherManager {
     this.nextEventTimer = this.getRandomInterval();
     this.transitionProgress = 0;
 
+    this.lightningBolts = [];
+    this.lightningFlash = null;
+    this.lightningTimer = 0;
+    this.nextLightningCooldown = this.getRandomLightningCooldown();
+    this.isFlashing = false;
+    this.flashIntensity = 0;
+    this.flashLight = null;
+
     this.createClouds();
     this.createRainSystem();
+    this.createLightningSystem();
   }
 
   getRandomInterval() {
@@ -125,6 +141,86 @@ export class WeatherManager {
     this.scene.add(this.rainParticles);
   }
 
+  createLightningSystem() {
+    this.flashLight = new THREE.PointLight(0xffffff, 0, 400);
+    this.flashLight.position.set(0, 100, 0);
+    this.scene.add(this.flashLight);
+
+    for (let i = 0; i < 3; i++) {
+      const boltMat = new THREE.LineBasicMaterial({
+        color: 0xffffee,
+        transparent: true,
+        opacity: 0,
+        linewidth: 2
+      });
+      const boltGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array((LIGHTNING_BOLT_SEGMENTS + 1) * 3);
+      boltGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const bolt = new THREE.Line(boltGeo, boltMat);
+      bolt.visible = false;
+      this.scene.add(bolt);
+      this.lightningBolts.push(bolt);
+    }
+
+    this.lightningFlash = new THREE.Mesh(
+      new THREE.SphereGeometry(200, 16, 16),
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0,
+        side: THREE.BackSide,
+        depthWrite: false
+      })
+    );
+    this.scene.add(this.lightningFlash);
+  }
+
+  getRandomLightningCooldown() {
+    return LIGHTNING_COOLDOWN_MIN + Math.random() * (LIGHTNING_COOLDOWN_MAX - LIGHTNING_COOLDOWN_MIN);
+  }
+
+  triggerLightning() {
+    const bolt = this.lightningBolts.find(b => !b.visible);
+    if (!bolt) return;
+
+    const startX = (Math.random() - 0.5) * 200;
+    const startZ = (Math.random() - 0.5) * 200;
+    const startY = 80 + Math.random() * 30;
+
+    const positions = bolt.geometry.attributes.position.array;
+    positions[0] = startX;
+    positions[1] = startY;
+    positions[2] = startZ;
+
+    for (let i = 1; i <= LIGHTNING_BOLT_SEGMENTS; i++) {
+      const t = i / LIGHTNING_BOLT_SEGMENTS;
+      positions[i * 3] = startX + (Math.random() - 0.5) * LIGHTNING_BOLT_SPREAD * t;
+      positions[i * 3 + 1] = startY - t * startY * 0.9;
+      positions[i * 3 + 2] = startZ + (Math.random() - 0.5) * LIGHTNING_BOLT_SPREAD * t;
+    }
+
+    bolt.geometry.attributes.position.needsUpdate = true;
+    bolt.visible = true;
+    bolt.material.opacity = 1;
+
+    this.flashLight.position.set(startX, 60, startZ);
+    this.flashLight.intensity = 3;
+    this.isFlashing = true;
+    this.flashIntensity = 1;
+
+    this.lightningFlash.position.set(startX, startY / 2, startZ);
+    this.lightningFlash.material.opacity = 0.15;
+
+    setTimeout(() => {
+      bolt.material.opacity = 0.3;
+    }, 50);
+
+    setTimeout(() => {
+      bolt.visible = false;
+      bolt.material.opacity = 0;
+    }, LIGHTNING_FLASH_DURATION * 1000);
+  }
+
   startRain() {
     this.isRaining = true;
     this.rainTimer = 0;
@@ -143,15 +239,21 @@ export class WeatherManager {
   stopRain() {
     this.targetIntensity = 0;
     this.transitionProgress = 0;
+
+    this.lightningBolts.forEach(bolt => {
+      bolt.visible = false;
+      bolt.material.opacity = 0;
+    });
+    this.flashLight.intensity = 0;
+    this.lightningFlash.material.opacity = 0;
+    this.isFlashing = false;
   }
 
   update(delta) {
     if (!this.isRaining) {
       this.nextEventTimer -= delta;
       if (this.nextEventTimer <= 0) {
-        if (this.shouldRainNow()) {
-          this.startRain();
-        }
+        this.startRain();
         this.nextEventTimer = this.getRandomInterval();
       }
     } else {
@@ -159,6 +261,15 @@ export class WeatherManager {
 
       if (this.rainIntensity > 0 && this.rainTimer >= this.rainDuration) {
         this.stopRain();
+      }
+
+      this.lightningTimer += delta;
+      if (this.lightningTimer >= this.nextLightningCooldown && this.rainIntensity > RAIN_INTENSITY * 0.5) {
+        if (Math.random() < LIGHTNING_PROBABILITY) {
+          this.triggerLightning();
+        }
+        this.lightningTimer = 0;
+        this.nextLightningCooldown = this.getRandomLightningCooldown();
       }
 
       const diff = this.targetIntensity - this.rainIntensity;
@@ -182,6 +293,22 @@ export class WeatherManager {
     if (this.rainIntensity > 0) {
       this.updateClouds(delta);
       this.updateRain(delta);
+      this.updateLightning(delta);
+    }
+  }
+
+  updateLightning(delta) {
+    if (this.isFlashing) {
+      this.flashIntensity -= delta * 8;
+      if (this.flashIntensity <= 0) {
+        this.flashIntensity = 0;
+        this.isFlashing = false;
+        this.flashLight.intensity = 0;
+        this.lightningFlash.material.opacity = 0;
+      } else {
+        this.flashLight.intensity = this.flashIntensity * 3;
+        this.lightningFlash.material.opacity = this.flashIntensity * 0.15;
+      }
     }
   }
 
