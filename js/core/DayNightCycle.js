@@ -14,6 +14,7 @@ export class DayNightCycle {
     this.sunMesh = null;
     this.moonMesh = null;
     this.weatherDarkening = 0;
+    this.dayOffset = 0.25;
 
     this.createSkyDome();
     this.createSun();
@@ -92,7 +93,14 @@ export class DayNightCycle {
     this.time += DAY_CYCLE_SPEED * deltaTime;
     if (this.time > 1) this.time -= 1;
 
-    const angle = this.time * Math.PI * 2 - Math.PI / 2;
+    const visualTime = (this.time + this.dayOffset) % 1;
+    const hour = visualTime * 24;
+
+    const dayProgress = Math.sin(visualTime * Math.PI * 2 - Math.PI / 2);
+    const dayFactor = Math.max(0, dayProgress);
+    const nightFactor = 1 - dayFactor;
+
+    const angle = visualTime * Math.PI * 2 - Math.PI / 2;
     const radius = 120;
     const sunY = Math.sin(angle) * radius;
     const sunX = Math.cos(angle) * radius;
@@ -101,9 +109,6 @@ export class DayNightCycle {
     this.sunLight.position.set(sunX, sunY, 30);
 
     this.moonMesh.position.set(-sunX, -sunY, -30);
-
-    const dayFactor = Math.max(0, Math.sin(this.time * Math.PI * 2 - Math.PI / 2));
-    const nightFactor = 1 - dayFactor;
 
     const dayTopColor = new THREE.Color(0x0066cc);
     const dayBottomColor = new THREE.Color(0x88bbff);
@@ -160,15 +165,17 @@ export class DayNightCycle {
   }
 
   getHourString() {
-    let hours = Math.floor(this.time * 24);
-    const minutes = Math.floor((this.time * 24 - hours) * 60);
+    const visualTime = (this.time + this.dayOffset) % 1;
+    let hours = Math.floor(visualTime * 24);
+    const minutes = Math.floor((visualTime * 24 - hours) * 60);
     const period = hours >= 12 ? 'PM' : 'AM';
     const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
     return `${String(h12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
   }
 
   getDayFactor() {
-    return Math.max(0, Math.sin(this.time * Math.PI * 2 - Math.PI / 2));
+    const visualTime = (this.time + this.dayOffset) % 1;
+    return Math.max(0, Math.sin(visualTime * Math.PI * 2 - Math.PI / 2));
   }
 
   setWeatherDarkening(factor) {

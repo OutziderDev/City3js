@@ -57,7 +57,8 @@ export class WeatherManager {
   }
 
   shouldRainNow() {
-    const hour = this.dayNight.time * 24;
+    const visualTime = (this.dayNight.time + this.dayNight.dayOffset) % 1;
+    const hour = visualTime * 24;
     let probability = 0.10;
 
     if (hour >= 14 && hour < 17) {
