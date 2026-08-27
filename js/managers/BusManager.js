@@ -45,7 +45,7 @@ export class BusManager {
     this.buses.push(bus);
   }
 
-  update(deltaTime, trafficLights, cityBounds) {
+  update(deltaTime, trafficLights, cityBounds, collisionManager) {
     this.spawnTimer += deltaTime;
 
     if (this.spawnTimer >= this.nextSpawnInterval) {
@@ -55,7 +55,8 @@ export class BusManager {
     }
 
     for (const bus of this.buses) {
-      bus.update(deltaTime, trafficLights, cityBounds);
+      const blocked = collisionManager ? collisionManager.isBlocked(bus) : false;
+      bus.update(deltaTime, trafficLights, cityBounds, blocked);
     }
 
     this.removeDeadBuses();

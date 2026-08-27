@@ -42,7 +42,19 @@ export class PedestrianManager {
 
   update(deltaTime, cityBounds) {
     for (const person of this.people) {
-      person.update(deltaTime, cityBounds);
+      if (person.alive) {
+        person.update(deltaTime, cityBounds);
+      }
+    }
+    this.removeDeadPeople();
+  }
+
+  removeDeadPeople() {
+    for (let i = this.people.length - 1; i >= 0; i--) {
+      if (!this.people[i].alive) {
+        this.people[i].destroy();
+        this.people.splice(i, 1);
+      }
     }
   }
 }

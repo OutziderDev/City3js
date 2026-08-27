@@ -12,6 +12,8 @@ export class Person {
     this.walkPhase = Math.random() * Math.PI * 2;
     this.turnTimer = 0;
     this.turnInterval = 5 + Math.random() * 10;
+    this.alive = true;
+    this.previousPosition = new THREE.Vector3(startX, SIDEWALK_HEIGHT, startZ);
 
     this.group = new THREE.Group();
     this.createBody();
@@ -62,6 +64,7 @@ export class Person {
   }
 
   update(deltaTime, cityBounds) {
+    this.previousPosition.copy(this.group.position);
     this.walkPhase += deltaTime * this.speed * 3;
 
     const legSwing = Math.sin(this.walkPhase) * 0.4;
@@ -106,5 +109,19 @@ export class Person {
     if (x < bounds.minX - margin) this.group.position.x = bounds.maxX + margin;
     if (z > bounds.maxZ + margin) this.group.position.z = bounds.minZ - margin;
     if (z < bounds.minZ - margin) this.group.position.z = bounds.maxZ + margin;
+  }
+
+  destroy() {
+    this.scene.remove(this.group);
+    this.group.traverse((child) => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach(m => m.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    });
   }
 }

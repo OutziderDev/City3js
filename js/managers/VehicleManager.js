@@ -38,9 +38,10 @@ export class VehicleManager {
     }
   }
 
-  update(deltaTime, trafficLights, cityBounds) {
+  update(deltaTime, trafficLights, cityBounds, collisionManager) {
     for (const car of this.cars) {
-      car.update(deltaTime, trafficLights, cityBounds);
+      const blocked = collisionManager ? collisionManager.isBlocked(car) : false;
+      car.update(deltaTime, trafficLights, cityBounds, blocked);
     }
   }
 }

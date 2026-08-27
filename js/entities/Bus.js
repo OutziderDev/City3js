@@ -154,13 +154,14 @@ export class Bus {
     }
   }
 
-  update(deltaTime, trafficLights, cityBounds) {
+  update(deltaTime, trafficLights, cityBounds, blocked) {
     this.age += deltaTime;
     if (this.age >= this.lifetime) {
       this.alive = false;
       return;
     }
 
+    if (blocked) return;
     const shouldStop = this.checkTrafficLights(trafficLights);
     if (shouldStop) return;
 

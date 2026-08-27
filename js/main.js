@@ -6,6 +6,7 @@ import { VehicleManager } from './managers/VehicleManager.js';
 import { PedestrianManager } from './managers/PedestrianManager.js';
 import { BusManager } from './managers/BusManager.js';
 import { WeatherManager } from './managers/WeatherManager.js';
+import { CollisionManager } from './managers/CollisionManager.js';
 import {
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH
 } from './utils/constants.js';
@@ -22,6 +23,9 @@ class CityApp {
     this.pedestrianManager = new PedestrianManager(this.sceneSetup.scene);
     this.busManager = new BusManager(this.sceneSetup.scene);
     this.weatherManager = new WeatherManager(this.sceneSetup.scene, this.dayNight);
+    this.collisionManager = new CollisionManager(
+      this.vehicleManager, this.busManager, this.pedestrianManager, this.grid
+    );
 
     this.cityBounds = this.calculateBounds();
 
@@ -58,13 +62,15 @@ class CityApp {
     this.dayNight.update(delta);
     this.grid.updateWindows(this.dayNight.getDayFactor(), delta);
     this.trafficManager.update(delta);
-    this.vehicleManager.update(delta, this.trafficManager.trafficLights, this.cityBounds);
+    this.collisionManager.update();
+    this.vehicleManager.update(delta, this.trafficManager.trafficLights, this.cityBounds, this.collisionManager);
     this.pedestrianManager.update(delta, this.cityBounds);
-    this.busManager.update(delta, this.trafficManager.trafficLights, this.cityBounds);
+    this.busManager.update(delta, this.trafficManager.trafficLights, this.cityBounds, this.collisionManager);
     this.weatherManager.update(delta);
 
     document.getElementById('clock-display').textContent = this.dayNight.getHourString();
     document.getElementById('bus-count').textContent = `🚌 ${this.busManager.buses.length}`;
+    document.getElementById('person-count').textContent = `🚶 ${this.pedestrianManager.people.length}`;
 
     const weatherEl = document.getElementById('weather-status');
     if (this.weatherManager.getIsRaining()) {

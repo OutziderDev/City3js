@@ -65,6 +65,10 @@ export const DIR_NEG_X = 1;
 export const DIR_POS_Z = 2;
 export const DIR_NEG_Z = 3;
 
+// Collision
+export const CAR_STOP_GAP = 2;
+export const PERSON_HIT_RADIUS = 1.0;
+
 // Weather
 export const RAIN_EVENT_INTERVAL_MIN = 40;/* 120; */
 export const RAIN_EVENT_INTERVAL_MAX = 100;/* 300; */

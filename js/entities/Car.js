@@ -87,7 +87,8 @@ export class Car {
     }
   }
 
-  update(deltaTime, trafficLights, cityBounds) {
+  update(deltaTime, trafficLights, cityBounds, blocked) {
+    if (blocked) return;
     const shouldStop = this.checkTrafficLights(trafficLights);
     if (shouldStop) return;
 
