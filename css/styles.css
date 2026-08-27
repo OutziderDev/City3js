@@ -55,3 +55,9 @@ html, body {
   font-size: 13px;
   backdrop-filter: blur(6px);
 }
+
+#weather-status {
+  background: rgba(30, 60, 120, 0.8) !important;
+  color: #88bbff !important;
+  font-weight: 600;
+}

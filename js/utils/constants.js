@@ -64,3 +64,14 @@ export const DIR_POS_X = 0;
 export const DIR_NEG_X = 1;
 export const DIR_POS_Z = 2;
 export const DIR_NEG_Z = 3;
+
+// Weather
+export const RAIN_EVENT_INTERVAL_MIN = 120;
+export const RAIN_EVENT_INTERVAL_MAX = 300;
+export const RAIN_DURATION_MIN = 60;
+export const RAIN_DURATION_MAX = 120;
+export const RAIN_INTENSITY = 1.5;
+export const CLOUD_COUNT = 12;
+export const CLOUD_SPEED = 8;
+export const RAIN_PARTICLE_COUNT = 3000;
+export const RAIN_TRANSITION_DURATION = 10;

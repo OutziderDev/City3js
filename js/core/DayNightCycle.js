@@ -13,6 +13,7 @@ export class DayNightCycle {
     this.time = 0.25;
     this.sunMesh = null;
     this.moonMesh = null;
+    this.weatherDarkening = 0;
 
     this.createSkyDome();
     this.createSun();
@@ -129,6 +130,13 @@ export class DayNightCycle {
     this.skyMesh.material.uniforms.topColor.value.copy(topColor);
     this.skyMesh.material.uniforms.bottomColor.value.copy(bottomColor);
 
+    if (this.weatherDarkening > 0) {
+      const darkTop = new THREE.Color(0x222233);
+      const darkBottom = new THREE.Color(0x444455);
+      this.skyMesh.material.uniforms.topColor.value.lerp(darkTop, this.weatherDarkening * 0.5);
+      this.skyMesh.material.uniforms.bottomColor.value.lerp(darkBottom, this.weatherDarkening * 0.4);
+    }
+
     this.sunLight.intensity = Math.max(0.05, dayFactor * 1.4);
     this.ambientLight.intensity = 0.15 + dayFactor * 0.35;
 
@@ -141,8 +149,8 @@ export class DayNightCycle {
       this.sunLight.color.lerpColors(sunsetColor, daySunColor, t);
     }
 
-    this.fog.color.copy(bottomColor);
-    this.scene.background = bottomColor;
+    this.fog.color.copy(this.skyMesh.material.uniforms.bottomColor.value);
+    this.scene.background = this.skyMesh.material.uniforms.bottomColor.value;
 
     this.starsMesh.visible = nightFactor > 0.3;
     this.starsMesh.material.opacity = Math.max(0, (nightFactor - 0.3) / 0.7);
@@ -161,5 +169,9 @@ export class DayNightCycle {
 
   getDayFactor() {
     return Math.max(0, Math.sin(this.time * Math.PI * 2 - Math.PI / 2));
+  }
+
+  setWeatherDarkening(factor) {
+    this.weatherDarkening = Math.max(0, Math.min(1, factor));
   }
 }

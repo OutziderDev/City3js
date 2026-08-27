@@ -5,6 +5,7 @@ import { TrafficManager } from './managers/TrafficManager.js';
 import { VehicleManager } from './managers/VehicleManager.js';
 import { PedestrianManager } from './managers/PedestrianManager.js';
 import { BusManager } from './managers/BusManager.js';
+import { WeatherManager } from './managers/WeatherManager.js';
 import {
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH
 } from './utils/constants.js';
@@ -20,6 +21,7 @@ class CityApp {
     this.vehicleManager = new VehicleManager(this.sceneSetup.scene);
     this.pedestrianManager = new PedestrianManager(this.sceneSetup.scene);
     this.busManager = new BusManager(this.sceneSetup.scene);
+    this.weatherManager = new WeatherManager(this.sceneSetup.scene, this.dayNight);
 
     this.cityBounds = this.calculateBounds();
 
@@ -59,9 +61,19 @@ class CityApp {
     this.vehicleManager.update(delta, this.trafficManager.trafficLights, this.cityBounds);
     this.pedestrianManager.update(delta, this.cityBounds);
     this.busManager.update(delta, this.trafficManager.trafficLights, this.cityBounds);
+    this.weatherManager.update(delta);
 
     document.getElementById('clock-display').textContent = this.dayNight.getHourString();
     document.getElementById('bus-count').textContent = `🚌 ${this.busManager.buses.length}`;
+
+    const weatherEl = document.getElementById('weather-status');
+    if (this.weatherManager.getIsRaining()) {
+      const pct = Math.round(this.weatherManager.getRainIntensity() * 100);
+      weatherEl.textContent = `🌧️ Lluvia ${pct}%`;
+      weatherEl.style.display = '';
+    } else {
+      weatherEl.style.display = 'none';
+    }
 
     this.sceneSetup.render();
   }
