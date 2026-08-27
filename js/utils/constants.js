@@ -66,8 +66,8 @@ export const DIR_POS_Z = 2;
 export const DIR_NEG_Z = 3;
 
 // Weather
-export const RAIN_EVENT_INTERVAL_MIN = 10;/* 120; */
-export const RAIN_EVENT_INTERVAL_MAX = 50;/* 300; */
+export const RAIN_EVENT_INTERVAL_MIN = 40;/* 120; */
+export const RAIN_EVENT_INTERVAL_MAX = 100;/* 300; */
 export const RAIN_DURATION_MIN = 60;
 export const RAIN_DURATION_MAX = 120;
 export const RAIN_INTENSITY = 1.5;

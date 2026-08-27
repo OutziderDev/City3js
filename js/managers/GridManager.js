@@ -119,42 +119,56 @@ export class GridManager {
 
   createCrosswalks() {
     const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+    const base = -this.halfExtent;
 
-    for (let r = 0; r <= GRID_SIZE; r++) {
-      for (let c = 0; c <= GRID_SIZE; c++) {
-        const ix = -this.halfExtent + r * this.step;
-        const iz = -this.halfExtent + c * this.step;
+    for (let r = 1; r < GRID_SIZE; r++) {
+      for (let c = 1; c < GRID_SIZE; c++) {
+        const ix = base + r * this.step;
+        const iz = base + c * this.step;
         this.intersections.push({ x: ix, z: iz });
 
-        this.addContinentalCrosswalk(ix, iz, 'horizontal', mat);
-        this.addContinentalCrosswalk(ix, iz, 'vertical', mat);
+        this.addContinentalCrosswalk(ix, iz, 'north', (mat ));
+        this.addContinentalCrosswalk(ix, iz, 'south', mat);
+        this.addContinentalCrosswalk(ix, iz, 'east', mat);
+        this.addContinentalCrosswalk(ix, iz, 'west', mat);
       }
     }
   }
 
-  addContinentalCrosswalk(ix, iz, orientation, mat) {
-    const stripeCount = 6;
-    const stripeGap = 0.5;
+  addContinentalCrosswalk(ix, iz, side, mat) {
     const stripeWidth = 0.5;
-    const stripeLength = ROAD_WIDTH - 2;
+    const stripeGap = 0.5;
+    const stripeCount = 6;
+    const stripeLength = ROAD_WIDTH;
+    const roadHalf = ROAD_WIDTH / 2;
+    const crossOffset = roadHalf + 3 + ROAD_WIDTH * 0.05;
+
+    const isNS = side === 'north' || side === 'south';
+    const geo = isNS
+      ? new THREE.PlaneGeometry(stripeLength, stripeWidth)
+      : new THREE.PlaneGeometry(stripeWidth, stripeLength);
 
     for (let i = 0; i < stripeCount; i++) {
-      const offset = (i - (stripeCount - 1) / 2) * (stripeWidth + stripeGap);
-      const geo = new THREE.PlaneGeometry(
-        orientation === 'horizontal' ? stripeWidth : stripeLength,
-        orientation === 'horizontal' ? stripeLength : stripeWidth
-      );
+      const dist = (i - (stripeCount - 1) / 2) * (stripeWidth + stripeGap);
       const stripe = new THREE.Mesh(geo, mat);
       stripe.rotation.x = -Math.PI / 2;
-      stripe.position.y = 0.025;
+      stripe.receiveShadow = true;
 
-      if (orientation === 'horizontal') {
-        stripe.position.set(ix + offset, 0.025, iz);
-      } else {
-        stripe.position.set(ix, 0.025, iz + offset);
+      switch (side) {
+        case 'north':
+          stripe.position.set(ix, 0.03, iz - crossOffset - dist);
+          break;
+        case 'south':
+          stripe.position.set(ix, 0.03, iz + crossOffset + dist);
+          break;
+        case 'east':
+          stripe.position.set(ix + crossOffset + dist, 0.03, iz);
+          break;
+        case 'west':
+          stripe.position.set(ix - crossOffset - dist, 0.03, iz);
+          break;
       }
 
-      stripe.receiveShadow = true;
       this.scene.add(stripe);
     }
   }
