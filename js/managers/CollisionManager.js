@@ -57,6 +57,7 @@ export class CollisionManager {
         const dirB = b.entity.direction;
 
         if (this.getAxis(dirB) !== axisA) continue;
+        if (this.isOppositeDirection(dirA, dirB)) continue;
 
         const perpDist = axisA === 'x'
           ? Math.abs(posA.z - posB.z)
@@ -138,5 +139,12 @@ export class CollisionManager {
       case DIR_NEG_Z: return posB.z < posA.z;
     }
     return false;
+  }
+
+  isOppositeDirection(dirA, dirB) {
+    return (dirA === DIR_POS_X && dirB === DIR_NEG_X) ||
+           (dirA === DIR_NEG_X && dirB === DIR_POS_X) ||
+           (dirA === DIR_POS_Z && dirB === DIR_NEG_Z) ||
+           (dirA === DIR_NEG_Z && dirB === DIR_POS_Z);
   }
 }
