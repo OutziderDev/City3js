@@ -79,3 +79,17 @@ export const CLOUD_COUNT = 12;
 export const CLOUD_SPEED = 8;
 export const RAIN_PARTICLE_COUNT = 3000;
 export const RAIN_TRANSITION_DURATION = 10;
+
+// Snow
+export const SNOW_EVENT_INTERVAL_MIN = 80;
+export const SNOW_EVENT_INTERVAL_MAX = 180;
+export const SNOW_DURATION_MIN = 40;
+export const SNOW_DURATION_MAX = 80;
+export const SNOW_PARTICLE_COUNT = 4000;
+export const SNOW_FLAKE_SIZE = 0.4;
+export const SNOW_FALL_SPEED_MIN = 0.6;
+export const SNOW_FALL_SPEED_MAX = 1.2;
+export const SNOW_DRIFT_STRENGTH = 0.4;
+export const SNOW_MELT_DELAY = 15;
+export const SNOW_MELT_SPEED = 0.3;
+export const SNOW_ACCUMULATION_COUNT = 200;
