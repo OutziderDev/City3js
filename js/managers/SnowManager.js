@@ -31,6 +31,7 @@ export class SnowManager {
 
     this.snowAccumulations = [];
     this.snowGroup = new THREE.Group();
+    this.scene.add(this.snowGroup);
 
     this.isSnowing = false;
     this.stormIntensity = 0;
@@ -48,7 +49,6 @@ export class SnowManager {
 
     this.createSnowSystem();
     this.createSnowAccumulation();
-    this.scene.add(this.snowGroup);
   }
 
   getRandomInterval() {
@@ -57,6 +57,20 @@ export class SnowManager {
 
   getRandomDuration() {
     return SNOW_DURATION_MIN + Math.random() * (SNOW_DURATION_MAX - SNOW_DURATION_MIN);
+  }
+
+  shouldSnowNow() {
+    const visualTime = (this.dayNight.time + this.dayNight.dayOffset) % 1;
+    const hour = visualTime * 24;
+    let probability = 0.05;
+
+    if (hour >= 18 && hour < 22) {
+      probability = 0.30;
+    } else if (hour >= 6 && hour < 10) {
+      probability = 0.20;
+    }
+
+    return Math.random() < probability;
   }
 
   createSnowSystem() {
@@ -120,6 +134,7 @@ export class SnowManager {
 
       pile.userData.baseScale = 0.3 + Math.random() * 0.4;
       pile.userData.targetScale = 0.8 + Math.random() * 0.4;
+      pile.userData.targetOpacity = 0.5 + Math.random() * 0.5;
       pile.userData.currentOpacity = 0;
       pile.scale.setScalar(pile.userData.baseScale);
 
@@ -170,7 +185,9 @@ export class SnowManager {
     if (!this.isSnowing) {
       this.nextEventTimer -= delta;
       if (this.nextEventTimer <= 0) {
-        this.startSnow();
+        if (this.shouldSnowNow()) {
+          this.startSnow();
+        }
         this.nextEventTimer = this.getRandomInterval();
       }
     } else {
@@ -194,7 +211,7 @@ export class SnowManager {
         this.nextEventTimer = this.getRandomInterval();
       }
 
-      this.dayNight.setWeatherDarkening(this.stormIntensity * 0.6);
+      this.dayNight.setWeatherDarkening(this.stormIntensity / 1.0);
     }
 
     if (this.isMelting) {
@@ -226,6 +243,7 @@ export class SnowManager {
   updateSnowflakes(delta) {
     const positions = this.snowGeometry.attributes.position.array;
     const time = performance.now() * 0.001;
+    const cameraPos = this.scene.children[0]?.position || { x: 0, y: 0, z: 0 };
 
     for (let i = 0; i < SNOW_PARTICLE_COUNT; i++) {
       const drift = Math.sin(time * 0.5 + this.snowDrifts[i]) * SNOW_DRIFT_STRENGTH;
@@ -235,15 +253,10 @@ export class SnowManager {
       positions[i * 3 + 2] += Math.cos(time * 0.3 + this.snowDrifts[i]) * SNOW_DRIFT_STRENGTH * delta * 20;
 
       if (positions[i * 3 + 1] < 0) {
-        positions[i * 3] = (Math.random() - 0.5) * 300;
+        positions[i * 3] = cameraPos.x + (Math.random() - 0.5) * 250;
         positions[i * 3 + 1] = 100 + Math.random() * 30;
-        positions[i * 3 + 2] = (Math.random() - 0.5) * 300;
+        positions[i * 3 + 2] = cameraPos.z + (Math.random() - 0.5) * 250;
       }
-
-      if (positions[i * 3] > 150) positions[i * 3] = -150;
-      if (positions[i * 3] < -150) positions[i * 3] = 150;
-      if (positions[i * 3 + 2] > 150) positions[i * 3 + 2] = -150;
-      if (positions[i * 3 + 2] < -150) positions[i * 3 + 2] = 150;
     }
 
     this.snowGeometry.attributes.position.needsUpdate = true;
@@ -254,7 +267,7 @@ export class SnowManager {
     const time = performance.now() * 0.001;
 
     this.snowAccumulations.forEach((pile, index) => {
-      const targetOpacity = this.stormIntensity * (0.5 + Math.random() * 0.5);
+      const targetOpacity = this.stormIntensity * pile.userData.targetOpacity;
       const diff = targetOpacity - pile.userData.currentOpacity;
 
       if (Math.abs(diff) > 0.01) {
