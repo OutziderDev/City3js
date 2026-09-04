@@ -75,17 +75,26 @@ class CityApp {
     document.getElementById('bus-count').textContent = `🚌 ${this.busManager.buses.length}`;
     document.getElementById('person-count').textContent = `🚶 ${this.pedestrianManager.people.length}`;
 
-    const weatherEl = document.getElementById('weather-status');
+    const rainEl = document.getElementById('rain-prob');
     if (this.weatherManager.getIsRaining()) {
-      const pct = Math.round(this.weatherManager.getRainIntensity() * 100);
-      weatherEl.textContent = `🌧️ Lluvia ${pct}%`;
-      weatherEl.style.display = '';
-    } else if (this.snowManager.getIsSnowing()) {
-      const pct = Math.round(this.snowManager.getSnowIntensity() * 100);
-      weatherEl.textContent = `❄️ Nieve ${pct}%`;
-      weatherEl.style.display = '';
+      const remaining = Math.max(0, Math.round(this.weatherManager.getRainRemaining() * 100));
+      rainEl.textContent = `🌧️ Lluvia ${remaining}%`;
+      rainEl.classList.add('active');
     } else {
-      weatherEl.style.display = 'none';
+      const prob = Math.round(this.weatherManager.getRainProbability() * 100);
+      rainEl.textContent = `🌧️ ${prob}%`;
+      rainEl.classList.remove('active');
+    }
+
+    const snowEl = document.getElementById('snow-prob');
+    if (this.snowManager.getIsSnowing()) {
+      const remaining = Math.max(0, Math.round(this.snowManager.getSnowRemaining() * 100));
+      snowEl.textContent = `❄️ Nieve ${remaining}%`;
+      snowEl.classList.add('active');
+    } else {
+      const prob = Math.round(this.snowManager.getSnowProbability() * 100);
+      snowEl.textContent = `❄️ ${prob}%`;
+      snowEl.classList.remove('active');
     }
 
     this.sceneSetup.render();

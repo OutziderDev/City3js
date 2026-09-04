@@ -59,7 +59,7 @@ export class SnowManager {
     return SNOW_DURATION_MIN + Math.random() * (SNOW_DURATION_MAX - SNOW_DURATION_MIN);
   }
 
-  shouldSnowNow() {
+  getSnowProbability() {
     const visualTime = (this.dayNight.time + this.dayNight.dayOffset) % 1;
     const hour = visualTime * 24;
     let probability = 0.05;
@@ -70,7 +70,11 @@ export class SnowManager {
       probability = 0.20;
     }
 
-    return Math.random() < probability;
+    return probability;
+  }
+
+  shouldSnowNow() {
+    return Math.random() < this.getSnowProbability();
   }
 
   createSnowSystem() {
@@ -299,5 +303,10 @@ export class SnowManager {
 
   getSnowIntensity() {
     return this.stormIntensity;
+  }
+
+  getSnowRemaining() {
+    if (!this.isSnowing || this.stormDuration === 0) return 0;
+    return 1 - (this.stormTimer / this.stormDuration);
   }
 }

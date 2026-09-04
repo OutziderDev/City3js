@@ -56,7 +56,7 @@ export class WeatherManager {
     return RAIN_DURATION_MIN + Math.random() * (RAIN_DURATION_MAX - RAIN_DURATION_MIN);
   }
 
-  shouldRainNow() {
+  getRainProbability() {
     const visualTime = (this.dayNight.time + this.dayNight.dayOffset) % 1;
     const hour = visualTime * 24;
     let probability = 0.10;
@@ -67,7 +67,11 @@ export class WeatherManager {
       probability = 0.25;
     }
 
-    return Math.random() < probability;
+    return probability;
+  }
+
+  shouldRainNow() {
+    return Math.random() < this.getRainProbability();
   }
 
   createClouds() {
@@ -352,5 +356,10 @@ export class WeatherManager {
 
   getRainIntensity() {
     return this.rainIntensity;
+  }
+
+  getRainRemaining() {
+    if (!this.isRaining || this.rainDuration === 0) return 0;
+    return 1 - (this.rainTimer / this.rainDuration);
   }
 }

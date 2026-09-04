@@ -61,3 +61,19 @@ html, body {
   color: #88bbff !important;
   font-weight: 600;
 }
+
+.weather-prob {
+  font-weight: 600;
+  font-size: 12px;
+  transition: background 0.3s, color 0.3s;
+}
+
+#rain-prob.active {
+  background: rgba(30, 80, 140, 0.85) !important;
+  color: #66ccff !important;
+}
+
+#snow-prob.active {
+  background: rgba(60, 90, 130, 0.85) !important;
+  color: #ddeeff !important;
+}
