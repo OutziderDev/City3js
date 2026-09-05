@@ -34,6 +34,10 @@ class CityApp {
 
     this.cityBounds = this.calculateBounds();
 
+    this.speedMultiplier = 1;
+    this.speedBtn = document.getElementById('speed-btn');
+    this.speedBtn.addEventListener('click', () => this.toggleSpeed());
+
     this.lastTime = performance.now();
     this.updateUI();
     this.animate();
@@ -57,6 +61,12 @@ class CityApp {
     document.getElementById('person-count').textContent = `🚶 ${this.pedestrianManager.people.length}`;
   }
 
+  toggleSpeed() {
+    this.speedMultiplier = this.speedMultiplier === 1 ? 2 : 1;
+    this.speedBtn.textContent = this.speedMultiplier === 1 ? 'X2' : 'X1';
+    this.speedBtn.classList.toggle('active', this.speedMultiplier === 2);
+  }
+
   animate() {
     requestAnimationFrame(() => this.animate());
 
@@ -64,7 +74,7 @@ class CityApp {
     const delta = Math.min((now - this.lastTime) / 1000, 0.1);
     this.lastTime = now;
 
-    this.dayNight.update(delta);
+    this.dayNight.update(delta * this.speedMultiplier);
     this.grid.updateWindows(this.dayNight.getDayFactor(), delta);
     this.trafficManager.update(delta);
     this.collisionManager.update();

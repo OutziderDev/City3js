@@ -31,6 +31,13 @@ html, body {
   align-items: flex-start;
 }
 
+#clock-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
 #clock-display {
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
@@ -40,6 +47,31 @@ html, body {
   font-weight: 600;
   letter-spacing: 1px;
   backdrop-filter: blur(6px);
+  width: 120px;
+  text-align: center;
+}
+
+#speed-btn {
+  background: rgba(0, 0, 0, 0.6);
+  color: #ccc;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s, color 0.2s;
+}
+
+#speed-btn:hover {
+  background: rgba(50, 50, 50, 0.8);
+  color: #fff;
+}
+
+#speed-btn.active {
+  background: rgba(40, 120, 200, 0.85);
+  color: #fff;
 }
 
 #info-panel {

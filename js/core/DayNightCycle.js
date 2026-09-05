@@ -101,14 +101,14 @@ export class DayNightCycle {
     const nightFactor = 1 - dayFactor;
 
     const angle = visualTime * Math.PI * 2 - Math.PI / 2;
-    const radius = 120;
+    const radius = 175;
     const sunY = Math.sin(angle) * radius;
     const sunX = Math.cos(angle) * radius;
 
-    this.sunMesh.position.set(sunX, sunY, 0);
-    this.sunLight.position.set(sunX, sunY, 30);
+    this.sunMesh.position.set(sunX, sunY, -50);
+    this.sunLight.position.set(sunX, sunY, -30);
 
-    this.moonMesh.position.set(-sunX, -sunY, -30);
+    this.moonMesh.position.set(-sunX, -sunY, -80);
 
     const dayTop = new THREE.Color(0x4aa3f0);
     const dayBottom = new THREE.Color(0x87ceeb);
