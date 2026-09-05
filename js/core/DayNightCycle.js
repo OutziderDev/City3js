@@ -26,8 +26,8 @@ export class DayNightCycle {
     const skyGeo = new THREE.SphereGeometry(200, 32, 32);
     const skyMat = new THREE.ShaderMaterial({
       uniforms: {
-        topColor: { value: new THREE.Color(0x0077ff) },
-        bottomColor: { value: new THREE.Color(0x88bbff) },
+        topColor: { value: new THREE.Color(0x4aa3f0) },
+        bottomColor: { value: new THREE.Color(0x87ceeb) },
         offset: { value: 10 },
         exponent: { value: 0.4 }
       },
@@ -110,26 +110,45 @@ export class DayNightCycle {
 
     this.moonMesh.position.set(-sunX, -sunY, -30);
 
-    const dayTopColor = new THREE.Color(0x0066cc);
-    const dayBottomColor = new THREE.Color(0x88bbff);
-    const sunsetTopColor = new THREE.Color(0xff6633);
-    const sunsetBottomColor = new THREE.Color(0xff9944);
-    const nightTopColor = new THREE.Color(0x000022);
-    const nightBottomColor = new THREE.Color(0x000044);
+    const dayTop = new THREE.Color(0x4aa3f0);
+    const dayBottom = new THREE.Color(0x87ceeb);
+    const sunsetTop = new THREE.Color(0xd45a3a);
+    const sunsetBottom = new THREE.Color(0xf09050);
+    const nightTop = new THREE.Color(0x0a1628);
+    const nightBottom = new THREE.Color(0x142238);
+    const deepNightTop = new THREE.Color(0x060e1a);
+    const deepNightBottom = new THREE.Color(0x0c1a2a);
 
     let topColor, bottomColor;
 
-    if (dayFactor > 0.3) {
-      topColor = dayTopColor;
-      bottomColor = dayBottomColor;
-    } else if (dayFactor > 0) {
-      const t = dayFactor / 0.3;
-      topColor = new THREE.Color().lerpColors(sunsetTopColor, dayTopColor, t);
-      bottomColor = new THREE.Color().lerpColors(sunsetBottomColor, dayBottomColor, t);
-    } else {
-      const t = Math.max(0, (dayFactor + 0.3) / 0.3);
-      topColor = new THREE.Color().lerpColors(nightTopColor, sunsetTopColor, t);
-      bottomColor = new THREE.Color().lerpColors(nightBottomColor, sunsetBottomColor, t);
+    const isNight1 = hour >= 19 || hour < 3;
+    const isNight2 = hour >= 3 && hour < 5;
+    const isSunrise = hour >= 5 && hour < 6;
+    const isDay = hour >= 6 && hour < 17;
+    const isSunset1 = hour >= 17 && hour < 18.5;
+    const isSunset2 = hour >= 18.5 && hour < 19;
+
+    if (isDay) {
+      topColor = dayTop;
+      bottomColor = dayBottom;
+    } else if (isSunset1) {
+      const t = (hour - 17) / 1.5;
+      topColor = new THREE.Color().lerpColors(dayTop, sunsetTop, t);
+      bottomColor = new THREE.Color().lerpColors(dayBottom, sunsetBottom, t);
+    } else if (isSunset2) {
+      const t = (hour - 18.5) / 0.5;
+      topColor = new THREE.Color().lerpColors(sunsetTop, nightTop, t);
+      bottomColor = new THREE.Color().lerpColors(sunsetBottom, nightBottom, t);
+    } else if (isNight1) {
+      topColor = nightTop;
+      bottomColor = nightBottom;
+    } else if (isNight2) {
+      topColor = deepNightTop;
+      bottomColor = deepNightBottom;
+    } else if (isSunrise) {
+      const t = (hour - 5) / 1;
+      topColor = new THREE.Color().lerpColors(deepNightTop, dayTop, t);
+      bottomColor = new THREE.Color().lerpColors(deepNightBottom, dayBottom, t);
     }
 
     this.skyMesh.material.uniforms.topColor.value.copy(topColor);
@@ -157,11 +176,12 @@ export class DayNightCycle {
     this.fog.color.copy(this.skyMesh.material.uniforms.bottomColor.value);
     this.scene.background = this.skyMesh.material.uniforms.bottomColor.value;
 
-    this.starsMesh.visible = nightFactor > 0.3;
-    this.starsMesh.material.opacity = Math.max(0, (nightFactor - 0.3) / 0.7);
+    const showStars = hour >= 19 || hour < 5;
+    this.starsMesh.visible = showStars;
+    this.starsMesh.material.opacity = showStars ? 0.8 : 0;
 
-    this.sunMesh.visible = dayFactor > 0;
-    this.moonMesh.visible = nightFactor > 0.3;
+    this.sunMesh.visible = hour >= 6 && hour < 19;
+    this.moonMesh.visible = hour >= 19 || hour < 6;
   }
 
   getHourString() {
