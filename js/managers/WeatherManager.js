@@ -19,9 +19,10 @@ const LIGHTNING_BOLT_SEGMENTS = 8;
 const LIGHTNING_BOLT_SPREAD = 15;
 
 export class WeatherManager {
-  constructor(scene, dayNightCycle) {
+  constructor(scene, dayNightCycle, coordinator) {
     this.scene = scene;
     this.dayNight = dayNightCycle;
+    this.coordinator = coordinator;
 
     this.clouds = [];
     this.rainParticles = null;
@@ -227,11 +228,14 @@ export class WeatherManager {
   }
 
   startRain() {
+    if (!this.coordinator.canStartWeather('rain')) return;
+
     this.isRaining = true;
     this.rainTimer = 0;
     this.rainDuration = this.getRandomDuration();
     this.targetIntensity = RAIN_INTENSITY;
     this.transitionProgress = 0;
+    this.coordinator.registerWeatherStart('rain');
 
     this.clouds.forEach(cloud => {
       cloud.visible = true;
@@ -252,6 +256,7 @@ export class WeatherManager {
     this.flashLight.intensity = 0;
     this.lightningFlash.material.opacity = 0;
     this.isFlashing = false;
+    this.coordinator.registerWeatherEnd();
   }
 
   update(delta) {
@@ -352,6 +357,10 @@ export class WeatherManager {
 
   getIsRaining() {
     return this.isRaining;
+  }
+
+  isStillVisual() {
+    return this.rainIntensity > 0.01;
   }
 
   getRainIntensity() {

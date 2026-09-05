@@ -7,6 +7,7 @@ import { PedestrianManager } from './managers/PedestrianManager.js';
 import { BusManager } from './managers/BusManager.js';
 import { WeatherManager } from './managers/WeatherManager.js';
 import { SnowManager } from './managers/SnowManager.js';
+import { WeatherCoordinator } from './managers/WeatherCoordinator.js';
 import { CollisionManager } from './managers/CollisionManager.js';
 import {
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH
@@ -23,8 +24,10 @@ class CityApp {
     this.vehicleManager = new VehicleManager(this.sceneSetup.scene);
     this.pedestrianManager = new PedestrianManager(this.sceneSetup.scene);
     this.busManager = new BusManager(this.sceneSetup.scene);
-    this.weatherManager = new WeatherManager(this.sceneSetup.scene, this.dayNight);
-    this.snowManager = new SnowManager(this.sceneSetup.scene, this.dayNight);
+    this.weatherCoordinator = new WeatherCoordinator();
+    this.weatherManager = new WeatherManager(this.sceneSetup.scene, this.dayNight, this.weatherCoordinator);
+    this.snowManager = new SnowManager(this.sceneSetup.scene, this.dayNight, this.weatherCoordinator);
+    this.weatherCoordinator.setManagers(this.weatherManager, this.snowManager);
     this.collisionManager = new CollisionManager(
       this.vehicleManager, this.busManager, this.pedestrianManager, this.grid
     );
@@ -68,6 +71,7 @@ class CityApp {
     this.vehicleManager.update(delta, this.trafficManager.trafficLights, this.cityBounds, this.collisionManager);
     this.pedestrianManager.update(delta, this.cityBounds);
     this.busManager.update(delta, this.trafficManager.trafficLights, this.cityBounds, this.collisionManager);
+    this.weatherCoordinator.update(delta);
     this.weatherManager.update(delta);
     this.snowManager.update(delta);
 

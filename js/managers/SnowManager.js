@@ -20,9 +20,10 @@ import {
 } from '../utils/constants.js';
 
 export class SnowManager {
-  constructor(scene, dayNightCycle) {
+  constructor(scene, dayNightCycle, coordinator) {
     this.scene = scene;
     this.dayNight = dayNightCycle;
+    this.coordinator = coordinator;
 
     this.snowflakes = null;
     this.snowGeometry = null;
@@ -167,10 +168,13 @@ export class SnowManager {
   }
 
   startSnow() {
+    if (!this.coordinator.canStartWeather('snow')) return;
+
     this.isSnowing = true;
     this.stormTimer = 0;
     this.stormDuration = this.getRandomDuration();
     this.targetIntensity = 1.0;
+    this.coordinator.registerWeatherStart('snow');
 
     this.snowflakes.visible = true;
 
@@ -183,6 +187,7 @@ export class SnowManager {
     this.targetIntensity = 0;
     this.isMelting = true;
     this.meltTimer = 0;
+    this.coordinator.registerWeatherEnd();
   }
 
   update(delta) {
@@ -299,6 +304,10 @@ export class SnowManager {
 
   getIsSnowing() {
     return this.isSnowing || this.isMelting;
+  }
+
+  isStillVisual() {
+    return this.stormIntensity > 0.01;
   }
 
   getSnowIntensity() {

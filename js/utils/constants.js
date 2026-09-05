@@ -93,3 +93,7 @@ export const SNOW_DRIFT_STRENGTH = 0.4;
 export const SNOW_MELT_DELAY = 15;
 export const SNOW_MELT_SPEED = 0.3;
 export const SNOW_ACCUMULATION_COUNT = 200;
+
+// Weather coordination - cooldown between weather events
+export const WEATHER_COOLDOWN_MIN = 30;
+export const WEATHER_COOLDOWN_MAX = 60;
