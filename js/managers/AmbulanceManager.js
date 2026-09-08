@@ -32,12 +32,12 @@ export class AmbulanceManager {
     if (isHorizontal) {
       const roadZ = Math.floor(Math.random() * (GRID_SIZE + 1));
       dir = Math.random() > 0.5 ? DIR_POS_X : DIR_NEG_X;
-      z = -half + roadZ * step + (dir === DIR_POS_X ? -laneOffset : laneOffset);
+      z = dir === DIR_POS_X ? -half + roadZ * step - laneOffset : -half + roadZ * step + laneOffset;
       x = dir === DIR_POS_X ? -half - 10 : half + 10;
     } else {
       const roadX = Math.floor(Math.random() * (GRID_SIZE + 1));
       dir = Math.random() > 0.5 ? DIR_POS_Z : DIR_NEG_Z;
-      x = -half + roadX * step + (dir === DIR_POS_Z ? -laneOffset : laneOffset);
+      x = dir === DIR_POS_Z ? -half + roadX * step + laneOffset : -half + roadX * step - laneOffset;
       z = dir === DIR_POS_Z ? -half - 10 : half + 10;
     }
 

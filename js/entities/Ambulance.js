@@ -160,50 +160,64 @@ export class Ambulance {
     this.group.rotation.y = this.getAngleForDirection(this.direction);
   }
 
+  getRightHandOffset(dir) {
+    switch (dir) {
+      case DIR_POS_X: return { axis: 'z', sign: -1 };
+      case DIR_NEG_X: return { axis: 'z', sign: 1 };
+      case DIR_POS_Z: return { axis: 'x', sign: 1 };
+      case DIR_NEG_Z: return { axis: 'x', sign: -1 };
+    }
+  }
+
   pickNextTarget() {
     const step = this.step;
-    const half = this.halfExtent;
 
     const roadX = Math.round(this.group.position.x / step) * step;
     const roadZ = Math.round(this.group.position.z / step) * step;
 
-    const possibleDirs = [];
-    const curAxis = (this.direction === DIR_POS_X || this.direction === DIR_NEG_X) ? 'x' : 'z';
+    const rand = Math.random();
+    let newDir;
 
-    if (curAxis === 'x') {
-      possibleDirs.push(DIR_POS_Z, DIR_NEG_Z);
-      if (Math.random() < 0.4) {
-        possibleDirs.push(this.direction);
+    if (rand < 0.5) {
+      newDir = this.direction;
+    } else if (rand < 0.75) {
+      switch (this.direction) {
+        case DIR_POS_X: newDir = DIR_POS_Z; break;
+        case DIR_NEG_X: newDir = DIR_NEG_Z; break;
+        case DIR_POS_Z: newDir = DIR_NEG_X; break;
+        case DIR_NEG_Z: newDir = DIR_POS_X; break;
       }
     } else {
-      possibleDirs.push(DIR_POS_X, DIR_NEG_X);
-      if (Math.random() < 0.4) {
-        possibleDirs.push(this.direction);
+      switch (this.direction) {
+        case DIR_POS_X: newDir = DIR_NEG_Z; break;
+        case DIR_NEG_X: newDir = DIR_POS_Z; break;
+        case DIR_POS_Z: newDir = DIR_POS_X; break;
+        case DIR_NEG_Z: newDir = DIR_NEG_X; break;
       }
     }
 
-    const newDir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
     this.direction = newDir;
 
+    const off = this.getRightHandOffset(newDir);
+    const laneOff = this.laneOffset;
     let tx, tz;
-    const laneOff = (newDir === DIR_POS_X || newDir === DIR_POS_Z) ? -this.laneOffset : this.laneOffset;
 
     switch (newDir) {
       case DIR_POS_X:
         tx = roadX + step;
-        tz = roadZ + laneOff;
+        tz = off.sign > 0 ? roadZ + laneOff : roadZ - laneOff;
         break;
       case DIR_NEG_X:
         tx = roadX - step;
-        tz = roadZ + laneOff;
+        tz = off.sign > 0 ? roadZ + laneOff : roadZ - laneOff;
         break;
       case DIR_POS_Z:
-        tx = roadX + laneOff;
         tz = roadZ + step;
+        tx = off.sign > 0 ? roadX + laneOff : roadX - laneOff;
         break;
       case DIR_NEG_Z:
-        tx = roadX + laneOff;
         tz = roadZ - step;
+        tx = off.sign > 0 ? roadX + laneOff : roadX - laneOff;
         break;
     }
 
@@ -240,18 +254,13 @@ export class Ambulance {
     this.sirenRedMesh.material.emissiveIntensity = flash ? 1 : 0.1;
     this.sirenBlueMesh.material.emissiveIntensity = flash ? 0.1 : 1;
 
-    const dx = this.targetX - this.group.position.x;
-    const dz = this.targetZ - this.group.position.z;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-
-    if (dist < REACH_THRESHOLD) {
-      this.pickNextTarget();
-    }
-
     const targetAngle = this.getAngleForDirection(this.direction);
     let angleDiff = targetAngle - this.group.rotation.y;
     while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
     while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+    const isTurning = Math.abs(angleDiff) > 0.1;
+    const moveSpeed = isTurning ? this.speed * 0.5 : this.speed;
 
     if (Math.abs(angleDiff) > 0.01) {
       this.group.rotation.y += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), TURN_SPEED * deltaTime);
@@ -259,15 +268,30 @@ export class Ambulance {
       this.group.rotation.y = targetAngle;
     }
 
-    const moveX = this.targetX - this.group.position.x;
-    const moveZ = this.targetZ - this.group.position.z;
-    const moveDist = Math.sqrt(moveX * moveX + moveZ * moveZ);
 
-    if (moveDist > 0.1) {
-      const nx = moveX / moveDist;
-      const nz = moveZ / moveDist;
-      this.group.position.x += nx * this.speed * deltaTime;
-      this.group.position.z += nz * this.speed * deltaTime;
+    const isOnXAxis = this.direction === DIR_POS_X || this.direction === DIR_NEG_X;
+
+    switch (this.direction) {
+      case DIR_POS_X: this.group.position.x += moveSpeed * deltaTime; break;
+      case DIR_NEG_X: this.group.position.x -= moveSpeed * deltaTime; break;
+      case DIR_POS_Z: this.group.position.z += moveSpeed * deltaTime; break;
+      case DIR_NEG_Z: this.group.position.z -= moveSpeed * deltaTime; break;
+    }
+
+    if (isOnXAxis) {
+      this.group.position.z += (this.targetZ - this.group.position.z) * Math.min(1, 6 * deltaTime);
+    } else {
+      this.group.position.x += (this.targetX - this.group.position.x) * Math.min(1, 6 * deltaTime);
+    }
+
+    const alongDist = isOnXAxis
+      ? Math.abs(this.targetX - this.group.position.x)
+      : Math.abs(this.targetZ - this.group.position.z);
+
+    if (alongDist < REACH_THRESHOLD) {
+      this.group.position.x = this.targetX;
+      this.group.position.z = this.targetZ;
+      this.pickNextTarget();
     }
   }
 
