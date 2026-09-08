@@ -97,3 +97,14 @@ export const SNOW_ACCUMULATION_COUNT = 200;
 // Weather coordination - cooldown between weather events
 export const WEATHER_COOLDOWN_MIN = 30;
 export const WEATHER_COOLDOWN_MAX = 60;
+
+// Ambulance
+export const AMBULANCE_LENGTH = 5;
+export const AMBULANCE_WIDTH = 2.2;
+export const AMBULANCE_HEIGHT = 2.5;
+export const AMBULANCE_SPEED = 16;
+export const AMBULANCE_LIFETIME_MIN = 40;
+export const AMBULANCE_LIFETIME_MAX = 80;
+export const AMBULANCE_SPAWN_INTERVAL_MIN = 30;
+export const AMBULANCE_SPAWN_INTERVAL_MAX = 60;
+export const AMBULANCE_MAX_ACTIVE = 1;

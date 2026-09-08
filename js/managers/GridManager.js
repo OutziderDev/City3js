@@ -123,11 +123,11 @@ export class GridManager {
 
     for (let r = 1; r < GRID_SIZE; r++) {
       for (let c = 1; c < GRID_SIZE; c++) {
-        const ix = base + r * this.step;
+        const ix = (base + r * this.step);
         const iz = base + c * this.step;
         this.intersections.push({ x: ix, z: iz });
 
-        this.addContinentalCrosswalk(ix, iz, 'north', (mat ));
+        this.addContinentalCrosswalk(ix, iz, 'north', mat);
         this.addContinentalCrosswalk(ix, iz, 'south', mat);
         this.addContinentalCrosswalk(ix, iz, 'east', mat);
         this.addContinentalCrosswalk(ix, iz, 'west', mat);

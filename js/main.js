@@ -5,6 +5,7 @@ import { TrafficManager } from './managers/TrafficManager.js';
 import { VehicleManager } from './managers/VehicleManager.js';
 import { PedestrianManager } from './managers/PedestrianManager.js';
 import { BusManager } from './managers/BusManager.js';
+import { AmbulanceManager } from './managers/AmbulanceManager.js';
 import { WeatherManager } from './managers/WeatherManager.js';
 import { SnowManager } from './managers/SnowManager.js';
 import { WeatherCoordinator } from './managers/WeatherCoordinator.js';
@@ -24,6 +25,7 @@ class CityApp {
     this.vehicleManager = new VehicleManager(this.sceneSetup.scene);
     this.pedestrianManager = new PedestrianManager(this.sceneSetup.scene);
     this.busManager = new BusManager(this.sceneSetup.scene);
+    this.ambulanceManager = new AmbulanceManager(this.sceneSetup.scene);
     this.weatherCoordinator = new WeatherCoordinator();
     this.weatherManager = new WeatherManager(this.sceneSetup.scene, this.dayNight, this.weatherCoordinator);
     this.snowManager = new SnowManager(this.sceneSetup.scene, this.dayNight, this.weatherCoordinator);
@@ -59,6 +61,7 @@ class CityApp {
     document.getElementById('car-count').textContent = `🚗 ${this.vehicleManager.cars.length}`;
     document.getElementById('bus-count').textContent = `🚌 ${this.busManager.buses.length}`;
     document.getElementById('person-count').textContent = `🚶 ${this.pedestrianManager.people.length}`;
+    document.getElementById('ambulance-count').textContent = `🚑 ${this.ambulanceManager.ambulances.length}`;
   }
 
   toggleSpeed() {
@@ -81,6 +84,7 @@ class CityApp {
     this.vehicleManager.update(delta, this.trafficManager.trafficLights, this.cityBounds, this.collisionManager);
     this.pedestrianManager.update(delta, this.cityBounds);
     this.busManager.update(delta, this.trafficManager.trafficLights, this.cityBounds, this.collisionManager);
+    this.ambulanceManager.update(delta);
     this.weatherCoordinator.update(delta);
     this.weatherManager.update(delta);
     this.snowManager.update(delta);
@@ -88,6 +92,7 @@ class CityApp {
     document.getElementById('clock-display').textContent = this.dayNight.getHourString();
     document.getElementById('bus-count').textContent = `🚌 ${this.busManager.buses.length}`;
     document.getElementById('person-count').textContent = `🚶 ${this.pedestrianManager.people.length}`;
+    document.getElementById('ambulance-count').textContent = `🚑 ${this.ambulanceManager.ambulances.length}`;
 
     const rainEl = document.getElementById('rain-prob');
     if (this.weatherManager.getIsRaining()) {
