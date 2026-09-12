@@ -355,6 +355,34 @@ export class WeatherManager {
     this.rainParticles.material.opacity = 0.3 + (this.rainIntensity / RAIN_INTENSITY) * 0.4;
   }
 
+  forceRain() {
+    if (this.isRaining) {
+      this.stopRain();
+      return;
+    }
+
+    if (this.coordinator.isWeatherActive()) {
+      if (this.snowManager && this.snowManager.isStillVisual()) {
+        this.snowManager.stopSnow();
+      }
+    }
+
+    this.isRaining = true;
+    this.rainTimer = 0;
+    this.rainDuration = this.getRandomDuration();
+    this.targetIntensity = RAIN_INTENSITY;
+    this.transitionProgress = 0;
+    this.coordinator.forceStartWeather('rain');
+
+    this.clouds.forEach(cloud => {
+      cloud.visible = true;
+      cloud.position.x = cloud.userData.direction > 0 ? -150 : 150;
+    });
+
+    this.rainParticles.visible = true;
+    this.nextEventTimer = this.getRandomInterval();
+  }
+
   getIsRaining() {
     return this.isRaining;
   }

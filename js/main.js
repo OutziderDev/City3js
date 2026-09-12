@@ -40,6 +40,9 @@ class CityApp {
     this.speedBtn = document.getElementById('speed-btn');
     this.speedBtn.addEventListener('click', () => this.toggleSpeed());
 
+    document.getElementById('rain-prob').addEventListener('click', () => this.weatherManager.forceRain());
+    document.getElementById('snow-prob').addEventListener('click', () => this.snowManager.forceSnow());
+
     this.lastTime = performance.now();
     this.updateUI();
     this.animate();

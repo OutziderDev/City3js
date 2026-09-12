@@ -26,6 +26,12 @@ export class WeatherCoordinator {
     return true;
   }
 
+  forceStartWeather(type) {
+    this.activeWeather = type;
+    this.isCooldown = false;
+    this.cooldownTimer = 0;
+  }
+
   registerWeatherStart(type) {
     this.activeWeather = type;
   }

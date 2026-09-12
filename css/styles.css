@@ -77,6 +77,7 @@ html, body {
 #info-panel {
   display: flex;
   gap: 12px;
+  pointer-events: auto;
 }
 
 #info-panel span {
@@ -98,6 +99,7 @@ html, body {
   font-weight: 600;
   font-size: 12px;
   transition: background 0.3s, color 0.3s;
+  cursor: pointer;
 }
 
 #rain-prob.active {

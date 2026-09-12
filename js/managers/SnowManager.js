@@ -302,6 +302,33 @@ export class SnowManager {
     });
   }
 
+  forceSnow() {
+    if (this.isSnowing) {
+      this.stopSnow();
+      return;
+    }
+
+    if (this.coordinator.isWeatherActive()) {
+      if (this.weatherManager && this.weatherManager.isStillVisual()) {
+        this.weatherManager.stopRain();
+      }
+    }
+
+    this.isSnowing = true;
+    this.stormTimer = 0;
+    this.stormDuration = this.getRandomDuration();
+    this.targetIntensity = 1.0;
+    this.coordinator.forceStartWeather('snow');
+
+    this.snowflakes.visible = true;
+
+    this.snowAccumulations.forEach(pile => {
+      pile.visible = true;
+    });
+
+    this.nextEventTimer = this.getRandomInterval();
+  }
+
   getIsSnowing() {
     return this.isSnowing || this.isMelting;
   }
