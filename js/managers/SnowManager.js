@@ -63,12 +63,12 @@ export class SnowManager {
   getSnowProbability() {
     const visualTime = (this.dayNight.time + this.dayNight.dayOffset) % 1;
     const hour = visualTime * 24;
-    let probability = 0.05;
+    let probability = 0.15;
 
     if (hour >= 18 && hour < 22) {
-      probability = 0.30;
+      probability = 0.40;
     } else if (hour >= 6 && hour < 10) {
-      probability = 0.20;
+      probability = 0.30;
     }
 
     return probability;

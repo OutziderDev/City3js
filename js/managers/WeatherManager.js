@@ -60,12 +60,12 @@ export class WeatherManager {
   getRainProbability() {
     const visualTime = (this.dayNight.time + this.dayNight.dayOffset) % 1;
     const hour = visualTime * 24;
-    let probability = 0.10;
+    let probability = 0.05;
 
     if (hour >= 14 && hour < 17) {
-      probability = 0.40;
+      probability = 0.35;
     } else if (hour >= 6 && hour < 9) {
-      probability = 0.25;
+      probability = 0.20;
     }
 
     return probability;
