@@ -137,16 +137,16 @@ export class GridManager {
 
   addContinentalCrosswalk(ix, iz, side, mat) {
     const stripeWidth = 0.5;
-    const stripeGap = 0.5;
-    const stripeCount = 6;
-    const stripeLength = ROAD_WIDTH;
-    const roadHalf = ROAD_WIDTH / 2;
+    const stripeGap = 0.6;
+    const stripeCount = 10;
+    const stripeLength = ROAD_WIDTH - 7 ;
+    const roadHalf = ROAD_WIDTH / 1.6;
     const crossOffset = roadHalf + 3 + ROAD_WIDTH * 0.05;
 
     const isNS = side === 'north' || side === 'south';
     const geo = isNS
-      ? new THREE.PlaneGeometry(stripeLength, stripeWidth)
-      : new THREE.PlaneGeometry(stripeWidth, stripeLength);
+      ? new THREE.PlaneGeometry(stripeWidth, stripeLength)
+      : new THREE.PlaneGeometry(stripeLength, stripeWidth);
 
     for (let i = 0; i < stripeCount; i++) {
       const dist = (i - (stripeCount - 1) / 2) * (stripeWidth + stripeGap);
@@ -156,16 +156,16 @@ export class GridManager {
 
       switch (side) {
         case 'north':
-          stripe.position.set(ix, 0.03, iz - crossOffset - dist);
+          stripe.position.set(ix + dist, 0.03, iz - crossOffset);
           break;
         case 'south':
-          stripe.position.set(ix, 0.03, iz + crossOffset + dist);
+          stripe.position.set(ix + dist, 0.03, iz + crossOffset);
           break;
         case 'east':
-          stripe.position.set(ix + crossOffset + dist, 0.03, iz);
+          stripe.position.set(ix + crossOffset, 0.03, iz + dist);
           break;
         case 'west':
-          stripe.position.set(ix - crossOffset - dist, 0.03, iz);
+          stripe.position.set(ix - crossOffset, 0.03, iz + dist);
           break;
       }
 
