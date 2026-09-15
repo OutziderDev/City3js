@@ -279,6 +279,7 @@ export class SnowManager {
     this.isMelting = true;
     this.meltTimer = 0;
     this.hasMelted = false;
+    this.dayNight.setWeatherDarkening(0);
     this.coordinator.registerWeatherEnd();
   }
 
@@ -309,6 +310,7 @@ export class SnowManager {
         this.isSnowing = false;
         this.snowflakes.visible = false;
         this.stormIntensity = 0;
+        this.dayNight.setWeatherDarkening(0);
         this.nextEventTimer = this.getRandomInterval();
       }
 
