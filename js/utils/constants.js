@@ -90,9 +90,10 @@ export const SNOW_FLAKE_SIZE = 0.4;
 export const SNOW_FALL_SPEED_MIN = 0.6;
 export const SNOW_FALL_SPEED_MAX = 1.2;
 export const SNOW_DRIFT_STRENGTH = 0.4;
-export const SNOW_MELT_DELAY = 15;
-export const SNOW_MELT_SPEED = 0.3;
-export const SNOW_ACCUMULATION_COUNT = 200;
+export const SNOW_MELT_START_DELAY = 120;
+export const SNOW_MELT_DURATION = 90;
+export const SNOW_CELL_SIZE = 1.2;
+export const SNOW_MAX_CELL_HEIGHT = 0.35;
 
 // Weather coordination - cooldown between weather events
 export const WEATHER_COOLDOWN_MIN = 30;

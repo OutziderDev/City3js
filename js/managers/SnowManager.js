@@ -9,9 +9,10 @@ import {
   SNOW_FALL_SPEED_MIN,
   SNOW_FALL_SPEED_MAX,
   SNOW_DRIFT_STRENGTH,
-  SNOW_MELT_DELAY,
-  SNOW_MELT_SPEED,
-  SNOW_ACCUMULATION_COUNT,
+  SNOW_MELT_START_DELAY,
+  SNOW_MELT_DURATION,
+  SNOW_CELL_SIZE,
+  SNOW_MAX_CELL_HEIGHT,
   GRID_SIZE,
   BLOCK_SIZE,
   ROAD_WIDTH,
@@ -30,9 +31,9 @@ export class SnowManager {
     this.snowVelocities = null;
     this.snowDrifts = null;
 
-    this.snowAccumulations = [];
-    this.snowGroup = new THREE.Group();
-    this.scene.add(this.snowGroup);
+    this.cells = [];
+    this.cellMap = new Map();
+    this.cellMesh = null;
 
     this.isSnowing = false;
     this.stormIntensity = 0;
@@ -43,13 +44,14 @@ export class SnowManager {
 
     this.isMelting = false;
     this.meltTimer = 0;
+    this.hasMelted = false;
 
     this.gridStep = BLOCK_SIZE + ROAD_WIDTH;
     this.totalSize = GRID_SIZE * this.gridStep;
     this.halfExtent = this.totalSize / 2;
 
     this.createSnowSystem();
-    this.createSnowAccumulation();
+    this.createCellGrid();
   }
 
   getRandomInterval() {
@@ -64,13 +66,8 @@ export class SnowManager {
     const visualTime = (this.dayNight.time + this.dayNight.dayOffset) % 1;
     const hour = visualTime * 24;
     let probability = 0.15;
-
-    if (hour >= 18 && hour < 22) {
-      probability = 0.40;
-    } else if (hour >= 6 && hour < 10) {
-      probability = 0.30;
-    }
-
+    if (hour >= 18 && hour < 22) probability = 0.40;
+    else if (hour >= 6 && hour < 10) probability = 0.30;
     return probability;
   }
 
@@ -110,96 +107,191 @@ export class SnowManager {
     this.scene.add(this.snowflakes);
   }
 
-  createSnowAccumulation() {
-    const sidewalkPositions = this.getSidewalkPositions();
-
-    for (let i = 0; i < SNOW_ACCUMULATION_COUNT; i++) {
-      const pos = sidewalkPositions[Math.floor(Math.random() * sidewalkPositions.length)];
-
-      const width = 0.8 + Math.random() * 1.5;
-      const depth = 0.8 + Math.random() * 1.5;
-      const height = 0.05 + Math.random() * 0.1;
-
-      const geo = new THREE.BoxGeometry(width, height, depth);
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        roughness: 0.4,
-        transparent: true,
-        opacity: 0
-      });
-
-      const pile = new THREE.Mesh(geo, mat);
-      pile.position.set(
-        pos.x + (Math.random() - 0.5) * 2,
-        SIDEWALK_HEIGHT + height / 2,
-        pos.z + (Math.random() - 0.5) * 2
-      );
-      pile.castShadow = true;
-      pile.receiveShadow = true;
-
-      pile.userData.baseScale = 0.3 + Math.random() * 0.4;
-      pile.userData.targetScale = 0.8 + Math.random() * 0.4;
-      pile.userData.targetOpacity = 0.5 + Math.random() * 0.5;
-      pile.userData.currentOpacity = 0;
-      pile.scale.setScalar(pile.userData.baseScale);
-
-      this.snowAccumulations.push(pile);
-      this.snowGroup.add(pile);
-    }
-  }
-
-  getSidewalkPositions() {
-    const positions = [];
+  createCellGrid() {
+    const cs = SNOW_CELL_SIZE;
+    const sw = SIDEWALK_WIDTH;
+    const swCenter = BLOCK_SIZE / 2 - sw / 2;
+    const segs = Math.ceil(BLOCK_SIZE / cs);
+    const segsW = Math.ceil(sw / cs);
 
     for (let r = 0; r < GRID_SIZE; r++) {
       for (let c = 0; c < GRID_SIZE; c++) {
         const bx = -this.halfExtent + r * this.gridStep + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
         const bz = -this.halfExtent + c * this.gridStep + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
-        const swCenter = BLOCK_SIZE / 2 - SIDEWALK_WIDTH / 2;
+        const blockKey = `${r}_${c}`;
 
-        positions.push({ x: bx, z: bz - swCenter });
-        positions.push({ x: bx, z: bz + swCenter });
-        positions.push({ x: bx - swCenter, z: bz });
-        positions.push({ x: bx + swCenter, z: bz });
+        for (let sx = 0; sx < segs; sx++) {
+          for (let side = 0; side < 2; side++) {
+            const wx = bx - BLOCK_SIZE / 2 + (sx + 0.5) * cs;
+            const wz = side === 0 ? bz - swCenter : bz + swCenter;
+            const key = `${blockKey}_h${side}_${sx}`;
+            this.addCell(wx, wz, key);
+          }
+        }
+
+        for (let sz = 0; sz < segs; sz++) {
+          for (let side = 0; side < 2; side++) {
+            const wz = bz - BLOCK_SIZE / 2 + (sz + 0.5) * cs;
+            const wx = side === 0 ? bx - swCenter : bx + swCenter;
+            const key = `${blockKey}_v${side}_${sz}`;
+            this.addCell(wx, wz, key);
+          }
+        }
       }
     }
 
-    return positions;
+    if (this.cells.length === 0) return;
+
+    const geo = new THREE.BoxGeometry(cs * 0.9, 1, cs * 0.9);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.45,
+      transparent: true,
+      opacity: 1
+    });
+
+    this.cellMesh = new THREE.InstancedMesh(geo, mat, this.cells.length);
+    this.cellMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.cellMesh.frustumCulled = false;
+    this.cellMesh.visible = false;
+
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < this.cells.length; i++) {
+      const cell = this.cells[i];
+      dummy.position.set(cell.x, -10, cell.z);
+      dummy.scale.set(1, 0.01, 1);
+      dummy.updateMatrix();
+      this.cellMesh.setMatrixAt(i, dummy.matrix);
+    }
+    this.cellMesh.instanceMatrix.needsUpdate = true;
+    this.scene.add(this.cellMesh);
+  }
+
+  addCell(x, z, key) {
+    const idx = this.cells.length;
+    this.cells.push({ x, z, h: 0, idx });
+    this.cellMap.set(key, idx);
+  }
+
+  getCellIndex(wx, wz) {
+    const cs = SNOW_CELL_SIZE;
+    const halfE = this.halfExtent;
+    const step = this.gridStep;
+    const sw = SIDEWALK_WIDTH;
+    const swCenter = BLOCK_SIZE / 2 - sw / 2;
+    const segs = Math.ceil(BLOCK_SIZE / cs);
+
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const bx = -halfE + r * step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
+        const bz = -halfE + c * step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
+
+        const xMin = bx - BLOCK_SIZE / 2;
+        const xMax = bx + BLOCK_SIZE / 2;
+        const zMin = bz - BLOCK_SIZE / 2;
+        const zMax = bz + BLOCK_SIZE / 2;
+
+        if (wx >= xMin && wx < xMax && wz >= zMin && wz < zMax) {
+          const blockKey = `${r}_${c}`;
+
+          const z1a = bz - swCenter - sw / 2;
+          const z1b = bz - swCenter + sw / 2;
+          const z2a = bz + swCenter - sw / 2;
+          const z2b = bz + swCenter + sw / 2;
+
+          if (wz >= z1a && wz < z1b) {
+            const sx = Math.floor((wx - xMin) / cs);
+            return this.cellMap.get(`${blockKey}_h0_${sx}`) ?? -1;
+          }
+          if (wz >= z2a && wz < z2b) {
+            const sx = Math.floor((wx - xMin) / cs);
+            return this.cellMap.get(`${blockKey}_h1_${sx}`) ?? -1;
+          }
+
+          const x1a = bx - swCenter - sw / 2;
+          const x1b = bx - swCenter + sw / 2;
+          const x2a = bx + swCenter - sw / 2;
+          const x2b = bx + swCenter + sw / 2;
+
+          if (wx >= x1a && wx < x1b) {
+            const sz = Math.floor((wz - zMin) / cs);
+            return this.cellMap.get(`${blockKey}_v0_${sz}`) ?? -1;
+          }
+          if (wx >= x2a && wx < x2b) {
+            const sz = Math.floor((wz - zMin) / cs);
+            return this.cellMap.get(`${blockKey}_v1_${sz}`) ?? -1;
+          }
+
+          return -1;
+        }
+      }
+    }
+    return -1;
+  }
+
+  isOnSidewalk(wx, wz) {
+    const halfE = this.halfExtent;
+    const step = this.gridStep;
+    const sw = SIDEWALK_WIDTH;
+    const swCenter = BLOCK_SIZE / 2 - sw / 2;
+
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const bx = -halfE + r * step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
+        const bz = -halfE + c * step + ROAD_WIDTH / 2 + BLOCK_SIZE / 2;
+
+        if (wx >= bx - BLOCK_SIZE / 2 && wx < bx + BLOCK_SIZE / 2 &&
+            wz >= bz - BLOCK_SIZE / 2 && wz < bz + BLOCK_SIZE / 2) {
+          const z1 = bz - swCenter - sw / 2;
+          const z2 = bz - swCenter + sw / 2;
+          const z3 = bz + swCenter - sw / 2;
+          const z4 = bz + swCenter + sw / 2;
+          if ((wz >= z1 && wz < z2) || (wz >= z3 && wz < z4)) return true;
+
+          const x1 = bx - swCenter - sw / 2;
+          const x2 = bx - swCenter + sw / 2;
+          const x3 = bx + swCenter - sw / 2;
+          const x4 = bx + swCenter + sw / 2;
+          if ((wx >= x1 && wx < x2) || (wx >= x3 && wx < x4)) return true;
+        }
+      }
+    }
+    return false;
   }
 
   startSnow() {
     if (!this.coordinator.canStartWeather('snow')) return;
 
     this.isSnowing = true;
+    this.isMelting = false;
+    this.hasMelted = false;
     this.stormTimer = 0;
     this.stormDuration = this.getRandomDuration();
     this.targetIntensity = 1.0;
     this.coordinator.registerWeatherStart('snow');
 
     this.snowflakes.visible = true;
-
-    this.snowAccumulations.forEach(pile => {
-      pile.visible = true;
-    });
+    this.cellMesh.visible = true;
   }
 
   stopSnow() {
     this.targetIntensity = 0;
     this.isMelting = true;
     this.meltTimer = 0;
+    this.hasMelted = false;
     this.coordinator.registerWeatherEnd();
   }
 
   update(delta) {
-    if (!this.isSnowing) {
+    if (!this.isSnowing && !this.isMelting) {
       this.nextEventTimer -= delta;
       if (this.nextEventTimer <= 0) {
-        if (this.shouldSnowNow()) {
-          this.startSnow();
-        }
+        if (this.shouldSnowNow()) this.startSnow();
         this.nextEventTimer = this.getRandomInterval();
       }
-    } else {
+    }
+
+    if (this.isSnowing) {
       this.stormTimer += delta;
 
       if (this.stormIntensity > 0 && this.stormTimer >= this.stormDuration) {
@@ -220,51 +312,65 @@ export class SnowManager {
         this.nextEventTimer = this.getRandomInterval();
       }
 
-      this.dayNight.setWeatherDarkening(this.stormIntensity / 1.0);
+      this.dayNight.setWeatherDarkening(this.stormIntensity);
+      this.updateSnowflakes(delta);
+      this.updateCellVisuals();
     }
 
     if (this.isMelting) {
       this.meltTimer += delta;
-      if (this.meltTimer >= SNOW_MELT_DELAY) {
-        let allMelted = true;
-        this.snowAccumulations.forEach(pile => {
-          pile.userData.currentOpacity -= SNOW_MELT_SPEED * delta;
-          if (pile.userData.currentOpacity > 0) {
-            allMelted = false;
-          } else {
-            pile.userData.currentOpacity = 0;
-            pile.visible = false;
+
+      if (this.meltTimer >= SNOW_MELT_START_DELAY && !this.hasMelted) {
+        let allGone = true;
+        for (let i = 0; i < this.cells.length; i++) {
+          if (this.cells[i].h > 0.001) {
+            this.cells[i].h *= 1 - delta * 0.35;
+            if (this.cells[i].h < 0.001) this.cells[i].h = 0;
+            allGone = false;
           }
-          pile.material.opacity = pile.userData.currentOpacity;
-        });
-        if (allMelted) {
+        }
+        this.updateCellVisuals();
+
+        if (allGone) {
+          this.hasMelted = true;
           this.isMelting = false;
+          this.cellMesh.visible = false;
+          for (let i = 0; i < this.cells.length; i++) this.cells[i].h = 0;
         }
       }
-    }
-
-    if (this.stormIntensity > 0) {
-      this.updateSnowflakes(delta);
-      this.updateAccumulation(delta);
     }
   }
 
   updateSnowflakes(delta) {
     const positions = this.snowGeometry.attributes.position.array;
     const time = performance.now() * 0.001;
-    const cameraPos = this.scene.children[0]?.position || { x: 0, y: 0, z: 0 };
+    const cam = this.scene.children[0]?.position || { x: 0, y: 0, z: 0 };
 
     for (let i = 0; i < SNOW_PARTICLE_COUNT; i++) {
+      const idx = i * 3;
       const drift = Math.sin(time * 0.5 + this.snowDrifts[i]) * SNOW_DRIFT_STRENGTH;
 
-      positions[i * 3] += drift * delta * 30;
-      positions[i * 3 + 1] -= this.snowVelocities[i] * 40 * delta;
-      positions[i * 3 + 2] += Math.cos(time * 0.3 + this.snowDrifts[i]) * SNOW_DRIFT_STRENGTH * delta * 20;
+      positions[idx] += drift * delta * 30;
+      positions[idx + 1] -= this.snowVelocities[i] * 40 * delta;
+      positions[idx + 2] += Math.cos(time * 0.3 + this.snowDrifts[i]) * SNOW_DRIFT_STRENGTH * delta * 20;
 
-      if (positions[i * 3 + 1] < 0) {
-        positions[i * 3] = cameraPos.x + (Math.random() - 0.5) * 250;
-        positions[i * 3 + 1] = 100 + Math.random() * 30;
-        positions[i * 3 + 2] = cameraPos.z + (Math.random() - 0.5) * 250;
+      if (positions[idx + 1] <= SIDEWALK_HEIGHT) {
+        const wx = positions[idx];
+        const wz = positions[idx + 2];
+
+        if (this.isOnSidewalk(wx, wz)) {
+          const ci = this.getCellIndex(wx, wz);
+          if (ci >= 0 && ci < this.cells.length && this.cells[ci].h < SNOW_MAX_CELL_HEIGHT) {
+            this.cells[ci].h += SNOW_MAX_CELL_HEIGHT * 0.004 * (0.4 + Math.random() * 0.6);
+            if (this.cells[ci].h > SNOW_MAX_CELL_HEIGHT) {
+              this.cells[ci].h = SNOW_MAX_CELL_HEIGHT;
+            }
+          }
+        }
+
+        positions[idx] = cam.x + (Math.random() - 0.5) * 250;
+        positions[idx + 1] = 100 + Math.random() * 30;
+        positions[idx + 2] = cam.z + (Math.random() - 0.5) * 250;
       }
     }
 
@@ -272,34 +378,26 @@ export class SnowManager {
     this.snowflakes.material.opacity = 0.4 + this.stormIntensity * 0.5;
   }
 
-  updateAccumulation(delta) {
-    const time = performance.now() * 0.001;
+  updateCellVisuals() {
+    if (!this.cellMesh) return;
 
-    this.snowAccumulations.forEach((pile, index) => {
-      const targetOpacity = this.stormIntensity * pile.userData.targetOpacity;
-      const diff = targetOpacity - pile.userData.currentOpacity;
+    const dummy = new THREE.Object3D();
 
-      if (Math.abs(diff) > 0.01) {
-        pile.userData.currentOpacity += Math.sign(diff) * delta * 0.15;
+    for (let i = 0; i < this.cells.length; i++) {
+      const cell = this.cells[i];
+      if (cell.h > 0.001) {
+        const s = Math.max(0.01, cell.h / SNOW_MAX_CELL_HEIGHT);
+        dummy.position.set(cell.x, SIDEWALK_HEIGHT + (cell.h / 2) * s + 0.01, cell.z);
+        dummy.scale.set(1, s, 1);
       } else {
-        pile.userData.currentOpacity = targetOpacity;
+        dummy.position.set(cell.x, -10, cell.z);
+        dummy.scale.set(1, 0.01, 1);
       }
+      dummy.updateMatrix();
+      this.cellMesh.setMatrixAt(i, dummy.matrix);
+    }
 
-      pile.material.opacity = Math.max(0, pile.userData.currentOpacity);
-
-      const targetScale = pile.userData.baseScale + (pile.userData.targetScale - pile.userData.baseScale) * this.stormIntensity;
-      const currentScale = pile.scale.x;
-      const scaleDiff = targetScale - currentScale;
-      if (Math.abs(scaleDiff) > 0.01) {
-        const newScale = currentScale + Math.sign(scaleDiff) * delta * 0.3;
-        pile.scale.setScalar(newScale);
-      }
-
-      pile.position.y = SIDEWALK_HEIGHT + (pile.geometry.parameters.height / 2) * pile.scale.y;
-
-      const bob = Math.sin(time * 0.5 + index * 0.1) * 0.02 * this.stormIntensity;
-      pile.position.y += bob;
-    });
+    this.cellMesh.instanceMatrix.needsUpdate = true;
   }
 
   forceSnow() {
@@ -315,16 +413,15 @@ export class SnowManager {
     }
 
     this.isSnowing = true;
+    this.isMelting = false;
+    this.hasMelted = false;
     this.stormTimer = 0;
     this.stormDuration = this.getRandomDuration();
     this.targetIntensity = 1.0;
     this.coordinator.forceStartWeather('snow');
 
     this.snowflakes.visible = true;
-
-    this.snowAccumulations.forEach(pile => {
-      pile.visible = true;
-    });
+    this.cellMesh.visible = true;
 
     this.nextEventTimer = this.getRandomInterval();
   }
@@ -334,7 +431,7 @@ export class SnowManager {
   }
 
   isStillVisual() {
-    return this.stormIntensity > 0.01;
+    return this.stormIntensity > 0.01 || this.isMelting;
   }
 
   getSnowIntensity() {
