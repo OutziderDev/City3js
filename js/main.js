@@ -93,6 +93,7 @@ class CityApp {
     this.snowManager.update(delta);
 
     document.getElementById('clock-display').textContent = this.dayNight.getHourString();
+    document.getElementById('car-count').textContent = `🚗 ${this.vehicleManager.cars.length}`;
     document.getElementById('bus-count').textContent = `🚌 ${this.busManager.buses.length}`;
     document.getElementById('person-count').textContent = `🚶 ${this.pedestrianManager.people.length}`;
     document.getElementById('ambulance-count').textContent = `🚑 ${this.ambulanceManager.ambulances.length}`;
