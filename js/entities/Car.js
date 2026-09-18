@@ -2,14 +2,29 @@ import * as THREE from 'three';
 import {
   CAR_LENGTH, CAR_WIDTH, CAR_HEIGHT, CAR_SPEEDS, CAR_COLORS,
   CAR_LIFETIME_MIN, CAR_LIFETIME_MAX,
-  ROAD_WIDTH, DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z
+  GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH,
+  DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z
 } from '../utils/constants.js';
+
+const TURN_SPEED = 6;
+const REACH_THRESHOLD = 3;
+
+const RIGHT_TURN = {
+  [DIR_POS_X]: DIR_NEG_Z,
+  [DIR_NEG_X]: DIR_POS_Z,
+  [DIR_POS_Z]: DIR_POS_X,
+  [DIR_NEG_Z]: DIR_NEG_X
+};
 
 export class Car {
   constructor(scene, startX, startZ, direction) {
     this.scene = scene;
     this.direction = direction;
     this.speed = CAR_SPEEDS[Math.floor(Math.random() * CAR_SPEEDS.length)];
+
+    this.step = BLOCK_SIZE + ROAD_WIDTH;
+    this.halfExtent = (GRID_SIZE * this.step) / 2;
+    this.laneOffset = ROAD_WIDTH / 4;
 
     this.age = 0;
     this.lifetime = CAR_LIFETIME_MIN + Math.random() * (CAR_LIFETIME_MAX - CAR_LIFETIME_MIN);
@@ -21,9 +36,13 @@ export class Car {
     this.createBody();
     this.createWheels();
 
-    this.group.rotation.y = this.getAngle();
     this.group.position.set(startX, 0.1, startZ);
+    this.updateRotation();
     scene.add(this.group);
+
+    this.targetX = startX;
+    this.targetZ = startZ;
+    this.pickNextTarget();
   }
 
   createBody() {
@@ -85,19 +104,94 @@ export class Car {
     }
   }
 
-  getAngle() {
-    switch (this.direction) {
+  getAngleForDirection(dir) {
+    switch (dir) {
       case DIR_POS_X: return -Math.PI / 2;
       case DIR_NEG_X: return Math.PI / 2;
       case DIR_POS_Z: return 0;
       case DIR_NEG_Z: return Math.PI;
     }
+    return 0;
+  }
+
+  updateRotation() {
+    this.group.rotation.y = this.getAngleForDirection(this.direction);
+  }
+
+  getRightHandOffset(dir) {
+    switch (dir) {
+      case DIR_POS_X: return { axis: 'z', sign: -1 };
+      case DIR_NEG_X: return { axis: 'z', sign: 1 };
+      case DIR_POS_Z: return { axis: 'x', sign: 1 };
+      case DIR_NEG_Z: return { axis: 'x', sign: -1 };
+    }
+  }
+
+  pickNextTarget() {
+    const roadX = Math.round(this.group.position.x / this.step) * this.step;
+    const roadZ = Math.round(this.group.position.z / this.step) * this.step;
+
+    const rand = Math.random();
+    let newDir;
+
+    if (rand < 0.6) {
+      newDir = this.direction;
+    } else {
+      newDir = RIGHT_TURN[this.direction];
+    }
+
+    this.direction = newDir;
+
+    const off = this.getRightHandOffset(newDir);
+    const laneOff = this.laneOffset;
+    let tx, tz;
+
+    switch (newDir) {
+      case DIR_POS_X:
+        tx = roadX + this.step;
+        tz = off.sign > 0 ? roadZ + laneOff : roadZ - laneOff;
+        break;
+      case DIR_NEG_X:
+        tx = roadX - this.step;
+        tz = off.sign > 0 ? roadZ + laneOff : roadZ - laneOff;
+        break;
+      case DIR_POS_Z:
+        tz = roadZ + this.step;
+        tx = off.sign > 0 ? roadX + laneOff : roadX - laneOff;
+        break;
+      case DIR_NEG_Z:
+        tz = roadZ - this.step;
+        tx = off.sign > 0 ? roadX + laneOff : roadX - laneOff;
+        break;
+    }
+
+    this.targetX = tx;
+    this.targetZ = tz;
+  }
+
+  checkTrafficLights(trafficLights) {
+    const myX = this.group.position.x;
+    const myZ = this.group.position.z;
+
+    for (const tl of trafficLights) {
+      if (!tl.shouldStop(this.direction)) continue;
+      if (!tl.isBeforeIntersection(myX, myZ, this.direction)) continue;
+
+      const dist = tl.getDistanceTo(myX, myZ);
+      if (dist < ROAD_WIDTH / 2 + 5) {
+        return true;
+      }
+    }
+    return false;
   }
 
   update(deltaTime, trafficLights, cityBounds, blocked) {
     if (!this.alive) return;
 
     this.age += deltaTime;
+    if (this.age >= this.lifetime && !this.fading) {
+      this.fading = true;
+    }
 
     if (this.fading) {
       this.fadeAlpha -= deltaTime * 0.8;
@@ -118,47 +212,44 @@ export class Car {
     const shouldStop = this.checkTrafficLights(trafficLights);
     if (shouldStop) return;
 
-    const dist = this.speed * deltaTime;
+    const targetAngle = this.getAngleForDirection(this.direction);
+    let angleDiff = targetAngle - this.group.rotation.y;
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+    const isTurning = Math.abs(angleDiff) > 0.1;
+    const moveSpeed = isTurning ? this.speed * 0.5 : this.speed;
+
+    if (Math.abs(angleDiff) > 0.01) {
+      this.group.rotation.y += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), TURN_SPEED * deltaTime);
+    } else {
+      this.group.rotation.y = targetAngle;
+    }
+
+    const isOnXAxis = this.direction === DIR_POS_X || this.direction === DIR_NEG_X;
 
     switch (this.direction) {
-      case DIR_POS_X: this.group.position.x += dist; break;
-      case DIR_NEG_X: this.group.position.x -= dist; break;
-      case DIR_POS_Z: this.group.position.z += dist; break;
-      case DIR_NEG_Z: this.group.position.z -= dist; break;
+      case DIR_POS_X: this.group.position.x += moveSpeed * deltaTime; break;
+      case DIR_NEG_X: this.group.position.x -= moveSpeed * deltaTime; break;
+      case DIR_POS_Z: this.group.position.z += moveSpeed * deltaTime; break;
+      case DIR_NEG_Z: this.group.position.z -= moveSpeed * deltaTime; break;
     }
 
-    this.wrapAround(cityBounds);
-
-    if (this.age >= this.lifetime) {
-      this.fading = true;
+    if (isOnXAxis) {
+      this.group.position.z += (this.targetZ - this.group.position.z) * Math.min(1, 6 * deltaTime);
+    } else {
+      this.group.position.x += (this.targetX - this.group.position.x) * Math.min(1, 6 * deltaTime);
     }
-  }
 
-  checkTrafficLights(trafficLights) {
-    const myX = this.group.position.x;
-    const myZ = this.group.position.z;
+    const alongDist = isOnXAxis
+      ? Math.abs(this.targetX - this.group.position.x)
+      : Math.abs(this.targetZ - this.group.position.z);
 
-    for (const tl of trafficLights) {
-      if (!tl.shouldStop(this.direction)) continue;
-      if (!tl.isBeforeIntersection(myX, myZ, this.direction)) continue;
-
-      const dist = tl.getDistanceTo(myX, myZ);
-      if (dist < ROAD_WIDTH / 2 + 5) {
-        return true;
-      }
+    if (alongDist < REACH_THRESHOLD) {
+      this.group.position.x = this.targetX;
+      this.group.position.z = this.targetZ;
+      this.pickNextTarget();
     }
-    return false;
-  }
-
-  wrapAround(bounds) {
-    const margin = 5;
-    const x = this.group.position.x;
-    const z = this.group.position.z;
-
-    if (x > bounds.maxX + margin) this.group.position.x = bounds.minX - margin;
-    if (x < bounds.minX - margin) this.group.position.x = bounds.maxX + margin;
-    if (z > bounds.maxZ + margin) this.group.position.z = bounds.minZ - margin;
-    if (z < bounds.minZ - margin) this.group.position.z = bounds.maxZ + margin;
   }
 
   destroy() {
