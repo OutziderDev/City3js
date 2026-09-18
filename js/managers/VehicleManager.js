@@ -26,32 +26,24 @@ export class VehicleManager {
     const half = total / 2;
     const laneOffset = ROAD_WIDTH / 4;
 
-    const roadPositions = [];
-    for (let i = 0; i <= GRID_SIZE; i++) {
-      roadPositions.push(-half + i * step);
-    }
-
     const isHorizontal = Math.random() > 0.5;
     let x, z, dir;
 
     if (isHorizontal) {
-      const roadZ = roadPositions[Math.floor(Math.random() * roadPositions.length)];
+      const roadIndex = Math.floor(Math.random() * (GRID_SIZE + 1));
+      const roadZ = -half + roadIndex * step;
       dir = Math.random() > 0.5 ? DIR_POS_X : DIR_NEG_X;
-      z = roadZ + (dir === DIR_POS_X ? -laneOffset : laneOffset);
+      z = dir === DIR_POS_X ? roadZ - laneOffset : roadZ + laneOffset;
       x = dir === DIR_POS_X ? -half - 10 : half + 10;
     } else {
-      const roadX = roadPositions[Math.floor(Math.random() * roadPositions.length)];
+      const roadIndex = Math.floor(Math.random() * (GRID_SIZE + 1));
+      const roadX = -half + roadIndex * step;
       dir = Math.random() > 0.5 ? DIR_POS_Z : DIR_NEG_Z;
-      x = roadX + (dir === DIR_POS_Z ? -laneOffset : laneOffset);
+      x = dir === DIR_POS_Z ? roadX + laneOffset : roadX - laneOffset;
       z = dir === DIR_POS_Z ? -half - 10 : half + 10;
     }
 
-    const destRoad = roadPositions[Math.floor(Math.random() * roadPositions.length)];
-    const destCross = roadPositions[Math.floor(Math.random() * roadPositions.length)];
-    const destX = destCross;
-    const destZ = destRoad;
-
-    const car = new Car(this.scene, x, z, dir, destX, destZ);
+    const car = new Car(this.scene, x, z, dir);
     this.cars.push(car);
   }
 
