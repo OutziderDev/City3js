@@ -172,7 +172,9 @@ export class Car {
       this.planDespawnDirection();
     }
 
-    const lane = this.getLanePosition(this.direction, this.group.position.x, this.group.position.z);
+    const roadX = Math.round(this.group.position.x / this.step) * this.step;
+    const roadZ = Math.round(this.group.position.z / this.step) * this.step;
+    const lane = this.getLanePosition(this.direction, roadX, roadZ);
     let tx, tz;
 
     switch (this.direction) {
@@ -189,8 +191,8 @@ export class Car {
   planNextDirection() {
     this.snapToIntersection(this.direction);
 
-    const curX = this.group.position.x;
-    const curZ = this.group.position.z;
+    const curX = Math.round(this.group.position.x / this.step) * this.step;
+    const curZ = Math.round(this.group.position.z / this.step) * this.step;
     const destRoadX = this.snapDestToRoad(this.destinationX);
     const destRoadZ = this.snapDestToRoad(this.destinationZ);
 

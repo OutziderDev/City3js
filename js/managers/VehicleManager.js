@@ -28,7 +28,7 @@ export class VehicleManager {
 
     const roadPositions = [];
     for (let i = 0; i <= GRID_SIZE; i++) {
-      roadPositions.push(-half + i * step + ROAD_WIDTH / 2);
+      roadPositions.push(-half + i * step);
     }
 
     const isHorizontal = Math.random() > 0.5;

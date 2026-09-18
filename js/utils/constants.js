@@ -29,8 +29,8 @@ export const CAR_COLORS = [
 export const CAR_LIFETIME_MIN = 25;
 export const CAR_LIFETIME_MAX = 50;
 export const CAR_SPAWN_INTERVAL_MIN = 3;
-export const CAR_SPAWN_INTERVAL_MAX = 6;
-export const CAR_MAX_ACTIVE = 10;
+export const CAR_SPAWN_INTERVAL_MAX = 8;
+export const CAR_MAX_ACTIVE = 18;
 
 // People
 export const PERSON_COUNT = 40;
