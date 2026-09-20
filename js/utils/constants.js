@@ -5,6 +5,16 @@ export const ROAD_WIDTH = 12;
 export const SIDEWALK_WIDTH = 3;
 export const SIDEWALK_HEIGHT = 0.3;
 
+// Road types: avenues (center) vs streets (outer)
+export const AVENUE_INDICES = [2, 3, 4];
+export const STREET_INDICES = [0, 1, 5, 6];
+export const AVENUE_WIDTH = 16;
+export const STREET_WIDTH = 10;
+export const AVENUE_SPEED_MULT = 1.25;
+export const STREET_SPEED_MULT = 0.85;
+export const AVENUE_LANES = 2;
+export const STREET_LANES = 1;
+
 // Buildings
 export const MIN_FLOORS = 3;
 export const MAX_FLOORS = 10;
@@ -30,7 +40,7 @@ export const CAR_LIFETIME_MIN = 25;
 export const CAR_LIFETIME_MAX = 50;
 export const CAR_SPAWN_INTERVAL_MIN = 3;
 export const CAR_SPAWN_INTERVAL_MAX = 8;
-export const CAR_MAX_ACTIVE = 18;
+export const CAR_MAX_ACTIVE = 27;
 
 // People
 export const PERSON_COUNT = 40;

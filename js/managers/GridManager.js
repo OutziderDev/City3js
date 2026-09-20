@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH, SIDEWALK_WIDTH, SIDEWALK_HEIGHT,
-  MIN_FLOORS, MAX_FLOORS, FLOOR_HEIGHT, BUILDING_COLORS
+  MIN_FLOORS, MAX_FLOORS, FLOOR_HEIGHT, BUILDING_COLORS,
+  AVENUE_INDICES, AVENUE_WIDTH, STREET_WIDTH
 } from '../utils/constants.js';
 import { Building } from '../entities/Building.js';
 import { Tree } from '../entities/Tree.js';
@@ -25,6 +26,14 @@ export class GridManager {
     this.createTrees();
   }
 
+  getRoadType(index) {
+    return AVENUE_INDICES.includes(index) ? 'avenue' : 'street';
+  }
+
+  getRoadWidth(index) {
+    return this.getRoadType(index) === 'avenue' ? AVENUE_WIDTH : STREET_WIDTH;
+  }
+
   createGround() {
     const size = this.totalSize + 80;
     const groundGeo = new THREE.PlaneGeometry(size, size);
@@ -39,26 +48,36 @@ export class GridManager {
   createRoads() {
     const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
     const dashMat = new THREE.MeshStandardMaterial({ color: 0xffff00, roughness: 0.7 });
+    const whiteDashMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
 
     for (let i = 0; i <= GRID_SIZE; i++) {
       const pos = -this.halfExtent + i * this.step;
+      const width = this.getRoadWidth(i);
+      const type = this.getRoadType(i);
 
-      const hRoadGeo = new THREE.PlaneGeometry(this.totalSize + ROAD_WIDTH, ROAD_WIDTH);
+      const hRoadGeo = new THREE.PlaneGeometry(this.totalSize + width, width);
       const hRoad = new THREE.Mesh(hRoadGeo, roadMat);
       hRoad.rotation.x = -Math.PI / 2;
       hRoad.position.set(0, 0.01, pos);
       hRoad.receiveShadow = true;
       this.scene.add(hRoad);
 
-      const vRoadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, this.totalSize + ROAD_WIDTH);
+      const vRoadGeo = new THREE.PlaneGeometry(width, this.totalSize + width);
       const vRoad = new THREE.Mesh(vRoadGeo, roadMat);
       vRoad.rotation.x = -Math.PI / 2;
       vRoad.position.set(pos, 0.01, 0);
       vRoad.receiveShadow = true;
       this.scene.add(vRoad);
 
-      this.addCenterLineFull(pos, 'horizontal', dashMat);
-      this.addCenterLineFull(pos, 'vertical', dashMat);
+      if (type === 'avenue') {
+        this.addDoubleCenterLine(pos, 'horizontal', dashMat);
+        this.addDoubleCenterLine(pos, 'vertical', dashMat);
+        this.addLaneDividers(pos, 'horizontal', whiteDashMat, width);
+        this.addLaneDividers(pos, 'vertical', whiteDashMat, width);
+      } else {
+        this.addCenterLineFull(pos, 'horizontal', dashMat);
+        this.addCenterLineFull(pos, 'vertical', dashMat);
+      }
     }
   }
 
@@ -84,6 +103,64 @@ export class GridManager {
         dash.position.set(pos, 0.03, offset);
       }
       this.scene.add(dash);
+    }
+  }
+
+  addDoubleCenterLine(pos, orientation, mat) {
+    const dashLen = 3;
+    const gapLen = 2;
+    const total = dashLen + gapLen;
+    const count = Math.floor(this.totalSize / total);
+    const lineOffset = 0.2;
+
+    const dashGeo = new THREE.PlaneGeometry(
+      orientation === 'horizontal' ? dashLen : 0.12,
+      orientation === 'horizontal' ? 0.12 : dashLen
+    );
+
+    for (let i = 0; i < count; i++) {
+      const offset = -this.totalSize / 2 + i * total + dashLen / 2 + total / 2;
+
+      for (const side of [-1, 1]) {
+        const dash = new THREE.Mesh(dashGeo, mat);
+        dash.rotation.x = -Math.PI / 2;
+
+        if (orientation === 'horizontal') {
+          dash.position.set(offset, 0.03, pos + side * lineOffset);
+        } else {
+          dash.position.set(pos + side * lineOffset, 0.03, offset);
+        }
+        this.scene.add(dash);
+      }
+    }
+  }
+
+  addLaneDividers(pos, orientation, mat, roadWidth) {
+    const dashLen = 2;
+    const gapLen = 3;
+    const total = dashLen + gapLen;
+    const count = Math.floor(this.totalSize / total);
+    const laneOffset = roadWidth / 4;
+
+    const dashGeo = new THREE.PlaneGeometry(
+      orientation === 'horizontal' ? dashLen : 0.1,
+      orientation === 'horizontal' ? 0.1 : dashLen
+    );
+
+    for (let i = 0; i < count; i++) {
+      const offset = -this.totalSize / 2 + i * total + dashLen / 2 + total / 2;
+
+      for (const side of [-1, 1]) {
+        const dash = new THREE.Mesh(dashGeo, mat);
+        dash.rotation.x = -Math.PI / 2;
+
+        if (orientation === 'horizontal') {
+          dash.position.set(offset, 0.03, pos + side * laneOffset);
+        } else {
+          dash.position.set(pos + side * laneOffset, 0.03, offset);
+        }
+        this.scene.add(dash);
+      }
     }
   }
 
