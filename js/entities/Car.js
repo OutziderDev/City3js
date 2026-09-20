@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import {
   CAR_LENGTH, CAR_WIDTH, CAR_HEIGHT, CAR_SPEEDS, CAR_COLORS,
-  CAR_LIFETIME_MIN, CAR_LIFETIME_MAX,
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH,
   DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z
 } from '../utils/constants.js';
@@ -9,15 +8,8 @@ import {
 const TURN_SPEED = 6;
 const REACH_THRESHOLD = 3;
 
-const RIGHT_TURN = {
-  [DIR_POS_X]: DIR_NEG_Z,
-  [DIR_NEG_X]: DIR_POS_Z,
-  [DIR_POS_Z]: DIR_POS_X,
-  [DIR_NEG_Z]: DIR_NEG_X
-};
-
 export class Car {
-  constructor(scene, startX, startZ, direction) {
+  constructor(scene, startX, startZ, direction, route) {
     this.scene = scene;
     this.direction = direction;
     this.speed = CAR_SPEEDS[Math.floor(Math.random() * CAR_SPEEDS.length)];
@@ -26,8 +18,7 @@ export class Car {
     this.halfExtent = (GRID_SIZE * this.step) / 2;
     this.laneOffset = ROAD_WIDTH / 4;
 
-    this.age = 0;
-    this.lifetime = CAR_LIFETIME_MIN + Math.random() * (CAR_LIFETIME_MAX - CAR_LIFETIME_MIN);
+    this.route = route;
     this.alive = true;
     this.fading = false;
     this.fadeAlpha = 1;
@@ -128,40 +119,38 @@ export class Car {
   }
 
   pickNextTarget() {
+    if (!this.route || this.route.currentIndex >= this.route.directions.length) {
+      this.fading = true;
+      return;
+    }
+
+    const nextDir = this.route.directions[this.route.currentIndex];
+    this.direction = nextDir;
+    this.route.currentIndex++;
+
     const roadX = Math.round(this.group.position.x / this.step) * this.step;
     const roadZ = Math.round(this.group.position.z / this.step) * this.step;
 
-    const rand = Math.random();
-    let newDir;
-
-    if (rand < 0.6) {
-      newDir = this.direction;
-    } else {
-      newDir = RIGHT_TURN[this.direction];
-    }
-
-    this.direction = newDir;
-
-    const off = this.getRightHandOffset(newDir);
+    const off = this.getRightHandOffset(nextDir);
     const laneOff = this.laneOffset;
     let tx, tz;
 
-    switch (newDir) {
+    switch (nextDir) {
       case DIR_POS_X:
         tx = roadX + this.step;
-        tz = off.sign > 0 ? roadZ + laneOff : roadZ - laneOff;
+        tz = roadZ + (off.sign * laneOff);
         break;
       case DIR_NEG_X:
         tx = roadX - this.step;
-        tz = off.sign > 0 ? roadZ + laneOff : roadZ - laneOff;
+        tz = roadZ + (off.sign * laneOff);
         break;
       case DIR_POS_Z:
         tz = roadZ + this.step;
-        tx = off.sign > 0 ? roadX + laneOff : roadX - laneOff;
+        tx = roadX + (off.sign * laneOff);
         break;
       case DIR_NEG_Z:
         tz = roadZ - this.step;
-        tx = off.sign > 0 ? roadX + laneOff : roadX - laneOff;
+        tx = roadX + (off.sign * laneOff);
         break;
     }
 
@@ -187,11 +176,6 @@ export class Car {
 
   update(deltaTime, trafficLights, cityBounds, blocked) {
     if (!this.alive) return;
-
-    this.age += deltaTime;
-    if (this.age >= this.lifetime && !this.fading) {
-      this.fading = true;
-    }
 
     if (this.fading) {
       this.fadeAlpha -= deltaTime * 0.8;

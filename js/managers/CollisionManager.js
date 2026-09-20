@@ -2,7 +2,8 @@ import {
   CAR_LENGTH, CAR_WIDTH, BUS_LENGTH, BUS_WIDTH,
   ROAD_WIDTH, SIDEWALK_HEIGHT,
   DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z,
-  CAR_STOP_GAP, PERSON_HIT_RADIUS
+  CAR_STOP_GAP, PERSON_HIT_RADIUS,
+  GRID_SIZE, BLOCK_SIZE, AVENUE_WIDTH, STREET_WIDTH, AVENUE_INDICES
 } from '../utils/constants.js';
 
 export class CollisionManager {
@@ -12,6 +13,15 @@ export class CollisionManager {
     this.pedestrianManager = pedestrianManager;
     this.buildings = gridManager.buildings;
     this.blockedSet = new Set();
+    this.step = BLOCK_SIZE + ROAD_WIDTH;
+    this.halfExtent = (GRID_SIZE * this.step) / 2;
+  }
+
+  getRoadWidthAt(pos) {
+    const row = Math.round((pos.z + this.halfExtent) / this.step);
+    const col = Math.round((pos.x + this.halfExtent) / this.step);
+    const isAvenue = AVENUE_INDICES.includes(row) || AVENUE_INDICES.includes(col);
+    return isAvenue ? AVENUE_WIDTH : STREET_WIDTH;
   }
 
   update() {
@@ -49,6 +59,7 @@ export class CollisionManager {
       const posA = a.entity.group.position;
       const dirA = a.entity.direction;
       const axisA = this.getAxis(dirA);
+      const roadWidthA = this.getRoadWidthAt(posA);
 
       for (let j = 0; j < vehicles.length; j++) {
         if (i === j) continue;
@@ -63,7 +74,7 @@ export class CollisionManager {
           ? Math.abs(posA.z - posB.z)
           : Math.abs(posA.x - posB.x);
 
-        if (perpDist > ROAD_WIDTH / 2) continue;
+        if (perpDist > roadWidthA / 2) continue;
 
         const isAhead = this.isAhead(posA, posB, dirA);
         if (!isAhead) continue;

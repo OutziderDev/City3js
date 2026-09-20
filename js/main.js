@@ -10,6 +10,7 @@ import { WeatherManager } from './managers/WeatherManager.js';
 import { SnowManager } from './managers/SnowManager.js';
 import { WeatherCoordinator } from './managers/WeatherCoordinator.js';
 import { CollisionManager } from './managers/CollisionManager.js';
+import { PathfindingManager } from './managers/PathfindingManager.js';
 import {
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH
 } from './utils/constants.js';
@@ -21,8 +22,9 @@ class CityApp {
     this.sceneSetup = new SceneSetup(this.canvas);
     this.dayNight = new DayNightCycle(this.sceneSetup);
     this.grid = new GridManager(this.sceneSetup.scene);
+    this.pathfindingManager = new PathfindingManager();
     this.trafficManager = new TrafficManager(this.sceneSetup.scene);
-    this.vehicleManager = new VehicleManager(this.sceneSetup.scene);
+    this.vehicleManager = new VehicleManager(this.sceneSetup.scene, this.pathfindingManager);
     this.pedestrianManager = new PedestrianManager(this.sceneSetup.scene);
     this.busManager = new BusManager(this.sceneSetup.scene);
     this.ambulanceManager = new AmbulanceManager(this.sceneSetup.scene);
