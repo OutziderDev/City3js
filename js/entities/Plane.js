@@ -21,6 +21,7 @@ export class Plane {
     this.createWings();
     this.createTail();
     this.createPropeller();
+    this.createNavigationLight();
 
     this.group.position.set(startX, startY, startZ);
     this.group.rotation.y = this.angle;
@@ -121,6 +122,25 @@ export class Plane {
     this.group.add(this.propeller);
   }
 
+  createNavigationLight() {
+    const lightGeo = new THREE.SphereGeometry(0.15, 8, 8);
+    const lightMat = new THREE.MeshStandardMaterial({
+      color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 2.0,
+      transparent: true, opacity: 1
+    });
+    this.navLight = new THREE.Mesh(lightGeo, lightMat);
+    this.navLight.position.set(0, PLANE_BODY_RADIUS + 0.8, -PLANE_LENGTH / 2 + 0.3);
+    this.group.add(this.navLight);
+
+    this.navLight2 = new THREE.Mesh(lightGeo, lightMat.clone());
+    this.navLight2.position.set(0, -PLANE_BODY_RADIUS * 0.5, -PLANE_LENGTH / 2 + 0.3);
+    this.group.add(this.navLight2);
+
+    this.blinkTimer = 0;
+    this.blinkInterval = 0.8 + Math.random() * 0.4;
+    this.navLightOn = true;
+  }
+
   update(deltaTime) {
     if (!this.alive) return;
 
@@ -139,6 +159,18 @@ export class Plane {
     }
 
     this.propeller.rotation.z += deltaTime * 40;
+
+    this.blinkTimer += deltaTime;
+    if (this.blinkTimer >= this.blinkInterval) {
+      this.blinkTimer = 0;
+      this.navLightOn = !this.navLightOn;
+      const opacity = this.navLightOn ? 1 : 0.05;
+      const emissive = this.navLightOn ? 2.0 : 0.1;
+      this.navLight.material.opacity = opacity;
+      this.navLight.material.emissiveIntensity = emissive;
+      this.navLight2.material.opacity = opacity;
+      this.navLight2.material.emissiveIntensity = emissive;
+    }
 
     this.group.position.x += this.velocityX * deltaTime;
     this.group.position.z += this.velocityZ * deltaTime;

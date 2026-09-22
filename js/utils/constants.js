@@ -126,15 +126,15 @@ export const AMBULANCE_SPAWN_INTERVAL_MAX = 60;
 export const AMBULANCE_MAX_ACTIVE = 1;
 
 // Airplanes
-export const PLANE_SPAWN_INTERVAL_MIN = 6;
-export const PLANE_SPAWN_INTERVAL_MAX = 12;
-export const PLANE_MAX_ACTIVE = 25;
-export const PLANE_HIGH_HEIGHT_MIN = 50;
+export const PLANE_SPAWN_INTERVAL_MIN = 2;
+export const PLANE_SPAWN_INTERVAL_MAX = 5;
+export const PLANE_MAX_ACTIVE = 8;
+export const PLANE_HIGH_HEIGHT_MIN = 35;
 export const PLANE_HIGH_HEIGHT_MAX = 60;
 export const PLANE_LOW_HEIGHT_MIN = 15;
 export const PLANE_LOW_HEIGHT_MAX = 20;
 export const PLANE_HIGH_SPEED_MIN = 25;
-export const PLANE_HIGH_SPEED_MAX = 35;
+export const PLANE_HIGH_SPEED_MAX = 40;
 export const PLANE_LOW_SPEED_MIN = 15;
 export const PLANE_LOW_SPEED_MAX = 20;
 export const PLANE_LOW_PROBABILITY = 0.25;
