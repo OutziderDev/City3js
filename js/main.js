@@ -6,6 +6,7 @@ import { VehicleManager } from './managers/VehicleManager.js';
 import { PedestrianManager } from './managers/PedestrianManager.js';
 import { BusManager } from './managers/BusManager.js';
 import { AmbulanceManager } from './managers/AmbulanceManager.js';
+import { AirplaneManager } from './managers/AirplaneManager.js';
 import { WeatherManager } from './managers/WeatherManager.js';
 import { SnowManager } from './managers/SnowManager.js';
 import { WeatherCoordinator } from './managers/WeatherCoordinator.js';
@@ -28,6 +29,7 @@ class CityApp {
     this.pedestrianManager = new PedestrianManager(this.sceneSetup.scene);
     this.busManager = new BusManager(this.sceneSetup.scene);
     this.ambulanceManager = new AmbulanceManager(this.sceneSetup.scene);
+    this.airplaneManager = new AirplaneManager(this.sceneSetup.scene);
     this.weatherCoordinator = new WeatherCoordinator();
     this.weatherManager = new WeatherManager(this.sceneSetup.scene, this.dayNight, this.weatherCoordinator);
     this.snowManager = new SnowManager(this.sceneSetup.scene, this.dayNight, this.weatherCoordinator);
@@ -67,6 +69,7 @@ class CityApp {
     document.getElementById('bus-count').textContent = `🚌 ${this.busManager.buses.length}`;
     document.getElementById('person-count').textContent = `🚶 ${this.pedestrianManager.people.length}`;
     document.getElementById('ambulance-count').textContent = `🚑 ${this.ambulanceManager.ambulances.length}`;
+    document.getElementById('plane-count').textContent = `✈️ ${this.airplaneManager.planes.length}`;
   }
 
   toggleSpeed() {
@@ -90,6 +93,7 @@ class CityApp {
     this.pedestrianManager.update(delta, this.cityBounds);
     this.busManager.update(delta, this.trafficManager.trafficLights, this.cityBounds, this.collisionManager);
     this.ambulanceManager.update(delta);
+    this.airplaneManager.update(delta);
     this.weatherCoordinator.update(delta);
     this.weatherManager.update(delta);
     this.snowManager.update(delta);
@@ -99,6 +103,7 @@ class CityApp {
     document.getElementById('bus-count').textContent = `🚌 ${this.busManager.buses.length}`;
     document.getElementById('person-count').textContent = `🚶 ${this.pedestrianManager.people.length}`;
     document.getElementById('ambulance-count').textContent = `🚑 ${this.ambulanceManager.ambulances.length}`;
+    document.getElementById('plane-count').textContent = `✈️ ${this.airplaneManager.planes.length}`;
 
     const rainEl = document.getElementById('rain-prob');
     if (this.weatherManager.getIsRaining()) {
