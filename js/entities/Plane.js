@@ -23,6 +23,10 @@ export class Plane {
     this.createPropeller();
     this.createNavigationLight();
 
+    this.hasSmokeTrail = Math.random() < 0.3;
+    this.smokeParticles = [];
+    this.smokeSpawnTimer = 0;
+
     this.group.position.set(startX, startY, startZ);
     this.group.rotation.y = this.angle;
     scene.add(this.group);
@@ -123,9 +127,9 @@ export class Plane {
   }
 
   createNavigationLight() {
-    const lightGeo = new THREE.SphereGeometry(0.15, 8, 8);
+    const lightGeo = new THREE.SphereGeometry(0.3, 8, 8);
     const lightMat = new THREE.MeshStandardMaterial({
-      color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 2.0,
+      color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 4.0,
       transparent: true, opacity: 1
     });
     this.navLight = new THREE.Mesh(lightGeo, lightMat);
@@ -136,8 +140,12 @@ export class Plane {
     this.navLight2.position.set(0, -PLANE_BODY_RADIUS * 0.5, -PLANE_LENGTH / 2 + 0.3);
     this.group.add(this.navLight2);
 
+    this.navPointLight = new THREE.PointLight(0xff0000, 3, 25);
+    this.navPointLight.position.copy(this.navLight.position);
+    this.group.add(this.navPointLight);
+
     this.blinkTimer = 0;
-    this.blinkInterval = 0.8 + Math.random() * 0.4;
+    this.blinkInterval = 0.3 + Math.random() * 0.2;
     this.navLightOn = true;
   }
 
@@ -165,17 +173,22 @@ export class Plane {
       this.blinkTimer = 0;
       this.navLightOn = !this.navLightOn;
       const opacity = this.navLightOn ? 1 : 0.05;
-      const emissive = this.navLightOn ? 2.0 : 0.1;
+      const emissive = this.navLightOn ? 4.0 : 0.1;
       this.navLight.material.opacity = opacity;
       this.navLight.material.emissiveIntensity = emissive;
       this.navLight2.material.opacity = opacity;
       this.navLight2.material.emissiveIntensity = emissive;
+      this.navPointLight.intensity = this.navLightOn ? 3 : 0;
     }
 
     this.group.position.x += this.velocityX * deltaTime;
     this.group.position.z += this.velocityZ * deltaTime;
 
     this.group.position.y += Math.sin(Date.now() * 0.001) * 0.003;
+
+    if (this.hasSmokeTrail) {
+      this.updateSmoke(deltaTime);
+    }
 
     const margin = 10;
     if (
@@ -188,7 +201,52 @@ export class Plane {
     }
   }
 
+  updateSmoke(deltaTime) {
+    this.smokeSpawnTimer += deltaTime;
+    if (this.smokeSpawnTimer >= 0.05) {
+      this.smokeSpawnTimer = 0;
+      const smokeGeo = new THREE.SphereGeometry(0.4 + Math.random() * 0.3, 6, 6);
+      const smokeMat = new THREE.MeshStandardMaterial({
+        color: 0x222222, transparent: true, opacity: 0.85,
+        roughness: 1, metalness: 0
+      });
+      const particle = new THREE.Mesh(smokeGeo, smokeMat);
+      const worldPos = new THREE.Vector3();
+      this.group.getWorldPosition(worldPos);
+      particle.position.copy(worldPos);
+      particle.position.y -= PLANE_BODY_RADIUS * 0.3;
+      particle.userData.life = 0;
+      particle.userData.maxLife = 3 + Math.random() * 2;
+      this.scene.add(particle);
+      this.smokeParticles.push(particle);
+    }
+
+    for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
+      const p = this.smokeParticles[i];
+      p.userData.life += deltaTime;
+      const t = p.userData.life / p.userData.maxLife;
+      p.material.opacity = 0.85 * (1 - t);
+      const scale = 1 + t * 2.5;
+      p.scale.setScalar(scale);
+      p.position.y += deltaTime * 1.5;
+
+      if (p.userData.life >= p.userData.maxLife) {
+        this.scene.remove(p);
+        p.geometry.dispose();
+        p.material.dispose();
+        this.smokeParticles.splice(i, 1);
+      }
+    }
+  }
+
   destroy() {
+    for (const p of this.smokeParticles) {
+      this.scene.remove(p);
+      p.geometry.dispose();
+      p.material.dispose();
+    }
+    this.smokeParticles = [];
+
     this.scene.remove(this.group);
     this.group.traverse((child) => {
       if (child.geometry) child.geometry.dispose();
