@@ -1,7 +1,7 @@
 import { Car } from '../entities/Car.js';
 import {
   CAR_MAX_ACTIVE, CAR_SPAWN_INTERVAL_MIN, CAR_SPAWN_INTERVAL_MAX,
-  GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH,
+  ROAD_WIDTH,
   DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z,
   AVENUE_INDICES, AVENUE_SPEED_MULT, STREET_SPEED_MULT
 } from '../utils/constants.js';
@@ -23,8 +23,6 @@ export class VehicleManager {
   spawnCar() {
     if (this.cars.length >= CAR_MAX_ACTIVE) return;
 
-    const step = BLOCK_SIZE + ROAD_WIDTH;
-    const half = (GRID_SIZE * step) / 2;
     const laneOffset = ROAD_WIDTH / 4;
 
     const origin = this.pathfinding.getRandomEdgeOrigin();
@@ -39,25 +37,25 @@ export class VehicleManager {
     let startX, startZ;
     switch (startDir) {
       case DIR_POS_X:
-        startX = originPos.x - half - 10;
+        startX = originPos.x - 10;
         startZ = originPos.z - laneOffset;
         break;
       case DIR_NEG_X:
-        startX = originPos.x + half + 10;
+        startX = originPos.x + 10;
         startZ = originPos.z + laneOffset;
         break;
       case DIR_POS_Z:
         startX = originPos.x + laneOffset;
-        startZ = originPos.z - half - 10;
+        startZ = originPos.z - 10;
         break;
       case DIR_NEG_Z:
         startX = originPos.x - laneOffset;
-        startZ = originPos.z + half + 10;
+        startZ = originPos.z + 10;
         break;
     }
 
     const route = { directions, destination: dest, currentIndex: 0 };
-    const car = new Car(this.scene, startX, startZ, startDir, route);
+    const car = new Car(this.scene, startX, startZ, startDir, route, this.pathfinding);
 
     const isAvenue = AVENUE_INDICES.includes(origin.col) || AVENUE_INDICES.includes(origin.row);
     car.speed *= isAvenue ? AVENUE_SPEED_MULT : STREET_SPEED_MULT;

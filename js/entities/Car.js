@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {
   CAR_LENGTH, CAR_WIDTH, CAR_HEIGHT, CAR_SPEEDS, CAR_COLORS,
+  CAR_LIFETIME_MIN, CAR_LIFETIME_MAX,
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH,
   DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z
 } from '../utils/constants.js';
@@ -9,7 +10,7 @@ const TURN_SPEED = 6;
 const REACH_THRESHOLD = 3;
 
 export class Car {
-  constructor(scene, startX, startZ, direction, route) {
+  constructor(scene, startX, startZ, direction, route, pathfinding) {
     this.scene = scene;
     this.direction = direction;
     this.speed = CAR_SPEEDS[Math.floor(Math.random() * CAR_SPEEDS.length)];
@@ -19,6 +20,9 @@ export class Car {
     this.laneOffset = ROAD_WIDTH / 4;
 
     this.route = route;
+    this.pathfinding = pathfinding;
+    this.age = 0;
+    this.lifetime = CAR_LIFETIME_MIN + Math.random() * (CAR_LIFETIME_MAX - CAR_LIFETIME_MIN);
     this.alive = true;
     this.fading = false;
     this.fadeAlpha = 1;
@@ -118,10 +122,25 @@ export class Car {
     }
   }
 
+  renewRoute() {
+    if (!this.pathfinding) return false;
+
+    const grid = this.pathfinding.worldToGrid(this.group.position.x, this.group.position.z);
+    const dest = this.pathfinding.getRandomDestination(grid.row, grid.col);
+    const directions = this.pathfinding.getPath(grid.row, grid.col, dest.row, dest.col);
+
+    if (directions.length === 0) return false;
+
+    this.route = { directions, destination: dest, currentIndex: 0 };
+    return true;
+  }
+
   pickNextTarget() {
     if (!this.route || this.route.currentIndex >= this.route.directions.length) {
-      this.fading = true;
-      return;
+      if (this.age >= this.lifetime || !this.renewRoute()) {
+        this.fading = true;
+        return;
+      }
     }
 
     const nextDir = this.route.directions[this.route.currentIndex];
@@ -176,6 +195,11 @@ export class Car {
 
   update(deltaTime, trafficLights, cityBounds, blocked) {
     if (!this.alive) return;
+
+    this.age += deltaTime;
+    if (this.age >= this.lifetime && !this.fading) {
+      this.fading = true;
+    }
 
     if (this.fading) {
       this.fadeAlpha -= deltaTime * 0.8;
