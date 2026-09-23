@@ -121,6 +121,28 @@ export class PathfindingManager {
     }
   }
 
+  createRoute(fromRow, fromCol) {
+    const destination = this.getRandomDestination(fromRow, fromCol);
+    const directions = this.getPath(fromRow, fromCol, destination.row, destination.col);
+
+    if (directions.length === 0) return null;
+
+    return { directions, destination, currentIndex: 0 };
+  }
+
+  getSpawnPosition(originPos, direction, laneOffset, margin = 10) {
+    switch (direction) {
+      case DIR_POS_X:
+        return { x: originPos.x - margin, z: originPos.z - laneOffset };
+      case DIR_NEG_X:
+        return { x: originPos.x + margin, z: originPos.z + laneOffset };
+      case DIR_POS_Z:
+        return { x: originPos.x + laneOffset, z: originPos.z - margin };
+      case DIR_NEG_Z:
+        return { x: originPos.x - laneOffset, z: originPos.z + margin };
+    }
+  }
+
   gridToWorld(row, col) {
     return {
       x: -this.halfExtent + col * this.step,
@@ -135,13 +157,5 @@ export class PathfindingManager {
       row: Math.max(0, Math.min(this.gridSize, row)),
       col: Math.max(0, Math.min(this.gridSize, col))
     };
-  }
-
-  getDirection(fromRow, fromCol, toRow, toCol) {
-    if (toRow < fromRow) return DIR_NEG_Z;
-    if (toRow > fromRow) return DIR_POS_Z;
-    if (toCol < fromCol) return DIR_NEG_X;
-    if (toCol > fromCol) return DIR_POS_X;
-    return DIR_POS_X;
   }
 }

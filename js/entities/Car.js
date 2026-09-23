@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   CAR_LENGTH, CAR_WIDTH, CAR_HEIGHT, CAR_SPEEDS, CAR_COLORS,
   CAR_LIFETIME_MIN, CAR_LIFETIME_MAX,
-  GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH,
+  BLOCK_SIZE, ROAD_WIDTH,
   DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z
 } from '../utils/constants.js';
 
@@ -16,7 +16,6 @@ export class Car {
     this.speed = CAR_SPEEDS[Math.floor(Math.random() * CAR_SPEEDS.length)];
 
     this.step = BLOCK_SIZE + ROAD_WIDTH;
-    this.halfExtent = (GRID_SIZE * this.step) / 2;
     this.laneOffset = ROAD_WIDTH / 4;
 
     this.route = route;
@@ -126,35 +125,36 @@ export class Car {
     if (!this.pathfinding) return false;
 
     const grid = this.pathfinding.worldToGrid(this.group.position.x, this.group.position.z);
-    const dest = this.pathfinding.getRandomDestination(grid.row, grid.col);
-    const directions = this.pathfinding.getPath(grid.row, grid.col, dest.row, dest.col);
+    const route = this.pathfinding.createRoute(grid.row, grid.col);
 
-    if (directions.length === 0) return false;
+    if (!route) return false;
 
-    this.route = { directions, destination: dest, currentIndex: 0 };
+    this.route = route;
     return true;
   }
 
-  pickNextTarget() {
-    if (!this.route || this.route.currentIndex >= this.route.directions.length) {
-      if (this.age >= this.lifetime || !this.renewRoute()) {
-        this.fading = true;
-        return;
-      }
+  ensureRoute() {
+    if (this.route && this.route.currentIndex < this.route.directions.length) {
+      return true;
     }
 
-    const nextDir = this.route.directions[this.route.currentIndex];
-    this.direction = nextDir;
-    this.route.currentIndex++;
+    if (this.age >= this.lifetime || !this.renewRoute()) {
+      this.fading = true;
+      return false;
+    }
 
+    return true;
+  }
+
+  computeTarget(dir) {
     const roadX = Math.round(this.group.position.x / this.step) * this.step;
     const roadZ = Math.round(this.group.position.z / this.step) * this.step;
 
-    const off = this.getRightHandOffset(nextDir);
+    const off = this.getRightHandOffset(dir);
     const laneOff = this.laneOffset;
     let tx, tz;
 
-    switch (nextDir) {
+    switch (dir) {
       case DIR_POS_X:
         tx = roadX + this.step;
         tz = roadZ + (off.sign * laneOff);
@@ -175,6 +175,16 @@ export class Car {
 
     this.targetX = tx;
     this.targetZ = tz;
+  }
+
+  pickNextTarget() {
+    if (!this.ensureRoute()) return;
+
+    const nextDir = this.route.directions[this.route.currentIndex];
+    this.direction = nextDir;
+    this.route.currentIndex++;
+
+    this.computeTarget(nextDir);
   }
 
   checkTrafficLights(trafficLights) {

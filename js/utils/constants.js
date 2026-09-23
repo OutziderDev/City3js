@@ -27,7 +27,6 @@ export const BUILDING_COLORS = [
 ];
 
 // Cars
-export const CAR_COUNT = 30;
 export const CAR_LENGTH = 4;
 export const CAR_WIDTH = 2;
 export const CAR_HEIGHT = 1.4;
