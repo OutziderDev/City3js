@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { isWebGLAvailable, showWebGLError } from '../utils/webgl.js';
 
 export class SceneSetup {
   constructor(canvas) {
@@ -13,10 +14,12 @@ export class SceneSetup {
     );
     this.camera.position.set(80, 70, 80);
 
-    this.renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-    });
+    if (!isWebGLAvailable()) {
+      showWebGLError();
+      throw new Error('WebGL is not available in this environment');
+    }
+
+    this.renderer = this.createRenderer(canvas);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
@@ -56,6 +59,25 @@ export class SceneSetup {
     this.scene.fog = this.fog;
 
     window.addEventListener('resize', () => this.onResize());
+  }
+
+  createRenderer(canvas) {
+    const attempts = [
+      { antialias: true, powerPreference: 'high-performance' },
+      { antialias: false, powerPreference: 'default' },
+      { antialias: false, powerPreference: 'low-power', failIfMajorPerformanceCaveat: false },
+    ];
+
+    for (const options of attempts) {
+      try {
+        return new THREE.WebGLRenderer({ canvas, ...options });
+      } catch (error) {
+        console.warn('WebGLRenderer creation failed with options:', options, error);
+      }
+    }
+
+    showWebGLError();
+    throw new Error('No se pudo crear el contexto WebGL');
   }
 
   onResize() {

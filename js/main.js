@@ -15,12 +15,18 @@ import { PathfindingManager } from './managers/PathfindingManager.js';
 import {
   GRID_SIZE, BLOCK_SIZE, ROAD_WIDTH
 } from './utils/constants.js';
+import { showWebGLError } from './utils/webgl.js';
 
 
 class CityApp {
   constructor() {
     this.canvas = document.getElementById('city-canvas');
-    this.sceneSetup = new SceneSetup(this.canvas);
+    try {
+      this.sceneSetup = new SceneSetup(this.canvas);
+    } catch (error) {
+      showWebGLError(error.message);
+      throw error;
+    }
     this.dayNight = new DayNightCycle(this.sceneSetup);
     this.grid = new GridManager(this.sceneSetup.scene);
     this.pathfindingManager = new PathfindingManager();
@@ -131,4 +137,8 @@ class CityApp {
   }
 }
 
-new CityApp();
+try {
+  new CityApp();
+} catch (error) {
+  console.error('Error al iniciar la ciudad 3D:', error);
+}

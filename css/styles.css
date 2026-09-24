@@ -111,3 +111,77 @@ html, body {
   background: rgba(60, 90, 130, 0.85) !important;
   color: #ddeeff !important;
 }
+
+#webgl-error {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.92);
+  color: #eee;
+}
+
+#webgl-error.visible {
+  display: flex;
+}
+
+.webgl-error-card {
+  max-width: 520px;
+  background: #14181f;
+  border: 1px solid #2a3344;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.webgl-error-card h1 {
+  font-size: 22px;
+  margin-bottom: 12px;
+  color: #ff8a8a;
+}
+
+.webgl-error-card p {
+  margin-bottom: 16px;
+  line-height: 1.5;
+  color: #cfd8e3;
+}
+
+.webgl-error-note {
+  font-size: 14px;
+  color: #9fb0c3;
+}
+
+.webgl-error-card ol {
+  margin: 0 0 20px 18px;
+  line-height: 1.6;
+  color: #cfd8e3;
+}
+
+.webgl-error-card li {
+  margin-bottom: 10px;
+}
+
+.webgl-error-card code {
+  background: #0b0e13;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+#webgl-retry-btn {
+  background: #2f6fed;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#webgl-retry-btn:hover {
+  background: #4a84f5;
+}
