@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GREEN_DURATION, YELLOW_DURATION, RED_DURATION, ROAD_WIDTH, DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z } from '../utils/constants.js';
+import { GREEN_DURATION, YELLOW_DURATION, RED_DURATION, ROAD_WIDTH, DIR_POS_X, DIR_NEG_X, DIR_POS_Z, DIR_NEG_Z, LIGHT_OFFSET, LIGHT_HEAD_WIDTH, LIGHT_HEAD_HEIGHT, LIGHT_HEAD_DEPTH, LIGHT_RADIUS, LIGHT_FACE_OFFSET, LIGHT_OFF_INTENSITY, LIGHT_ON_INTENSITY, LIGHT_BASE_COLORS } from '../utils/constants.js';
 
 export class TrafficLight {
   constructor(scene, x, z, orientation) {
@@ -32,7 +32,7 @@ export class TrafficLight {
     pole.castShadow = true;
     this.group.add(pole);
 
-    const armLen = 3.5;
+    const armLen = LIGHT_OFFSET - LIGHT_HEAD_DEPTH / 2;
     const armGeo = new THREE.CylinderGeometry(0.05, 0.05, armLen, 8);
     const arm = new THREE.Mesh(armGeo, poleMat);
 
@@ -47,59 +47,67 @@ export class TrafficLight {
   }
 
   createLights() {
-    const lightOffset = 3;
-    const ox = this.orientation === 'horizontal' ? lightOffset : 0;
-    const oz = this.orientation === 'horizontal' ? 0 : lightOffset;
+    const isH = this.orientation === 'horizontal';
+    const ox = isH ? LIGHT_OFFSET : 0;
+    const oz = isH ? 0 : LIGHT_OFFSET;
 
-    const backGeo = new THREE.BoxGeometry(1.0, 2.8, 0.15);
-    const backMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.3, metalness: 0.6 });
-    const back = new THREE.Mesh(backGeo, backMat);
-    back.position.set(ox, 5.25, oz);
-    this.group.add(back);
+    const headGeo = isH
+      ? new THREE.BoxGeometry(LIGHT_HEAD_DEPTH, LIGHT_HEAD_HEIGHT, LIGHT_HEAD_WIDTH)
+      : new THREE.BoxGeometry(LIGHT_HEAD_WIDTH, LIGHT_HEAD_HEIGHT, LIGHT_HEAD_DEPTH);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.3, metalness: 0.6 });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.set(ox, 5.25, oz);
+    this.group.add(head);
 
-    const topGeo = new THREE.BoxGeometry(1.2, 0.1, 0.8);
+    const capAlong = (isH ? LIGHT_HEAD_DEPTH : LIGHT_HEAD_WIDTH) + 0.2;
+    const capAcross = (isH ? LIGHT_HEAD_WIDTH : LIGHT_HEAD_DEPTH) + 0.2;
+    const topGeo = new THREE.BoxGeometry(capAlong, 0.1, capAcross);
     const topMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.6 });
     const top = new THREE.Mesh(topGeo, topMat);
     top.position.set(ox, 6.7, oz);
     this.group.add(top);
 
+    this.redLightMat = new THREE.MeshStandardMaterial({ color: LIGHT_BASE_COLORS.red, emissive: LIGHT_BASE_COLORS.red, emissiveIntensity: LIGHT_OFF_INTENSITY, roughness: 0.2 });
+    this.yellowLightMat = new THREE.MeshStandardMaterial({ color: LIGHT_BASE_COLORS.yellow, emissive: LIGHT_BASE_COLORS.yellow, emissiveIntensity: LIGHT_OFF_INTENSITY, roughness: 0.2 });
+    this.greenLightMat = new THREE.MeshStandardMaterial({ color: LIGHT_BASE_COLORS.green, emissive: LIGHT_BASE_COLORS.green, emissiveIntensity: LIGHT_OFF_INTENSITY, roughness: 0.2 });
+
+    const lightGeo = new THREE.SphereGeometry(LIGHT_RADIUS, 16, 16);
     const visorGeo = new THREE.CylinderGeometry(0.35, 0.3, 0.3, 16, 1, true);
     const visorMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.7, roughness: 0.3, side: THREE.DoubleSide });
 
-    const lightGeo = new THREE.SphereGeometry(0.28, 16, 16);
+    this.createFace(1, lightGeo, visorGeo, visorMat);
+    this.createFace(-1, lightGeo, visorGeo, visorMat);
+  }
 
-    this.redLightMat = new THREE.MeshStandardMaterial({ color: 0x660000, emissive: 0x660000, emissiveIntensity: 0.4, roughness: 0.2 });
-    this.yellowLightMat = new THREE.MeshStandardMaterial({ color: 0x664400, emissive: 0x664400, emissiveIntensity: 0.4, roughness: 0.2 });
-    this.greenLightMat = new THREE.MeshStandardMaterial({ color: 0x006600, emissive: 0x006600, emissiveIntensity: 0.4, roughness: 0.2 });
+  createFace(sign, lightGeo, visorGeo, visorMat) {
+    const isH = this.orientation === 'horizontal';
+    const ox = isH ? LIGHT_OFFSET : 0;
+    const oz = isH ? 0 : LIGHT_OFFSET;
 
-    this.redLight = new THREE.Mesh(lightGeo, this.redLightMat);
-    this.yellowLight = new THREE.Mesh(lightGeo, this.yellowLightMat);
-    this.greenLight = new THREE.Mesh(lightGeo, this.greenLightMat);
+    const lampOffset = sign * LIGHT_FACE_OFFSET;
+    const planeOffset = sign * (LIGHT_HEAD_DEPTH / 2);
 
-    const faceX = this.orientation === 'horizontal' ? 0.15 : 0;
-    const faceZ = this.orientation === 'horizontal' ? 0 : 0.15;
+    const lampX = isH ? lampOffset : 0;
+    const lampZ = isH ? 0 : lampOffset;
+    const planeX = isH ? planeOffset : 0;
+    const planeZ = isH ? 0 : planeOffset;
 
-    this.redLight.position.set(ox + faceX, 5.95, oz + faceZ);
-    this.yellowLight.position.set(ox + faceX, 5.25, oz + faceZ);
-    this.greenLight.position.set(ox + faceX, 4.55, oz + faceZ);
+    const lampY = [5.95, 5.25, 4.55];
+    const mats = [this.redLightMat, this.yellowLightMat, this.greenLightMat];
 
-    this.group.add(this.redLight);
-    this.group.add(this.yellowLight);
-    this.group.add(this.greenLight);
+    for (let i = 0; i < lampY.length; i++) {
+      const y = lampY[i];
 
-    const visorPositions = [
-      { y: 5.95 },
-      { y: 5.25 },
-      { y: 4.55 }
-    ];
+      const lamp = new THREE.Mesh(lightGeo, mats[i]);
+      lamp.position.set(ox + lampX, y, oz + lampZ);
+      this.group.add(lamp);
 
-    for (const vp of visorPositions) {
       const visor = new THREE.Mesh(visorGeo, visorMat);
-      visor.position.set(ox + faceX * 0.5, vp.y, oz + faceZ * 0.5);
-      if (this.orientation === 'horizontal') {
-        visor.rotation.z = Math.PI / 2;
+      visor.position.set(ox + planeX, y, oz + planeZ);
+      if (isH) {
+        visor.rotation.z = sign > 0 ? -Math.PI / 2 : Math.PI / 2;
       } else {
-        visor.rotation.x = Math.PI / 2;
+        visor.rotation.x = sign > 0 ? Math.PI / 2 : -Math.PI / 2;
       }
       this.group.add(visor);
     }
@@ -111,14 +119,22 @@ export class TrafficLight {
 
     const pulse = 0.8 + Math.sin(this.pulsePhase) * 0.2;
 
-    this.redLightMat.emissiveIntensity = 0.3;
-    this.yellowLightMat.emissiveIntensity = 0.3;
-    this.greenLightMat.emissiveIntensity = 0.3;
+    this.redLightMat.color.set(LIGHT_BASE_COLORS.red);
+    this.redLightMat.emissive.set(LIGHT_BASE_COLORS.red);
+    this.redLightMat.emissiveIntensity = LIGHT_OFF_INTENSITY;
+
+    this.yellowLightMat.color.set(LIGHT_BASE_COLORS.yellow);
+    this.yellowLightMat.emissive.set(LIGHT_BASE_COLORS.yellow);
+    this.yellowLightMat.emissiveIntensity = LIGHT_OFF_INTENSITY;
+
+    this.greenLightMat.color.set(LIGHT_BASE_COLORS.green);
+    this.greenLightMat.emissive.set(LIGHT_BASE_COLORS.green);
+    this.greenLightMat.emissiveIntensity = LIGHT_OFF_INTENSITY;
 
     switch (this.state) {
       case 'green':
         this.greenLightMat.emissive.set(0x00ff00);
-        this.greenLightMat.emissiveIntensity = 3 * pulse;
+        this.greenLightMat.emissiveIntensity = LIGHT_ON_INTENSITY * pulse;
         this.greenLightMat.color.set(0x00ff00);
         if (this.timer >= this.greenDuration) {
           this.state = 'yellow';
@@ -127,7 +143,7 @@ export class TrafficLight {
         break;
       case 'yellow':
         this.yellowLightMat.emissive.set(0xffaa00);
-        this.yellowLightMat.emissiveIntensity = 3 * pulse;
+        this.yellowLightMat.emissiveIntensity = LIGHT_ON_INTENSITY * pulse;
         this.yellowLightMat.color.set(0xffaa00);
         if (this.timer >= YELLOW_DURATION) {
           this.state = 'red';
@@ -136,7 +152,7 @@ export class TrafficLight {
         break;
       case 'red':
         this.redLightMat.emissive.set(0xff0000);
-        this.redLightMat.emissiveIntensity = 3 * pulse;
+        this.redLightMat.emissiveIntensity = LIGHT_ON_INTENSITY * pulse;
         this.redLightMat.color.set(0xff0000);
         if (this.timer >= this.redDuration) {
           this.state = 'green';

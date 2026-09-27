@@ -55,6 +55,20 @@ export const GREEN_DURATION = 5;
 export const YELLOW_DURATION = 1;
 export const RED_DURATION = 5;
 
+// Traffic light head geometry
+export const LIGHT_OFFSET = 3;
+export const LIGHT_HEAD_WIDTH = 1.0;
+export const LIGHT_HEAD_HEIGHT = 2.8;
+export const LIGHT_HEAD_DEPTH = 0.6;
+export const LIGHT_RADIUS = 0.28;
+export const LIGHT_PROTRUSION = 0.08;
+export const LIGHT_FACE_OFFSET = LIGHT_HEAD_DEPTH / 2 - LIGHT_RADIUS + LIGHT_PROTRUSION;
+
+// Traffic light emission
+export const LIGHT_OFF_INTENSITY = 0.3;
+export const LIGHT_ON_INTENSITY = 3;
+export const LIGHT_BASE_COLORS = { red: 0x660000, yellow: 0x664400, green: 0x006600 };
+
 // Day/Night cycle
 export const DAY_CYCLE_SPEED = 0.003;
 export const DAY_DURATION = 120;
