@@ -26,6 +26,17 @@ export const BUILDING_COLORS = [
   0x889999, 0x7799aa, 0x668899, 0x88aacc, 0x99bbdd
 ];
 
+// Trees
+export const TREE_BARK_COLOR = 0x6b4226;
+export const TREE_FOLIAGE_COLORS = [
+  0x2f7d32, 0x3a8f3c, 0x469b49, 0x276e2c,
+  0x52a855, 0x357f3a, 0x4a9340, 0x2b6b33
+];
+export const TREE_FOLIAGE_DETAIL = 0;
+export const TREE_FOLIAGE_NOISE = 0.15;
+export const TREE_TRUNK_SEGMENTS = 6;
+export const TREE_BRANCH_SEGMENTS = 5;
+
 // Cars
 export const CAR_LENGTH = 4;
 export const CAR_WIDTH = 2;

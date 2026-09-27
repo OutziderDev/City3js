@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import {
+  TREE_BARK_COLOR, TREE_FOLIAGE_COLORS, TREE_FOLIAGE_DETAIL,
+  TREE_FOLIAGE_NOISE, TREE_TRUNK_SEGMENTS, TREE_BRANCH_SEGMENTS
+} from '../utils/constants.js';
 
 function createBarkRoughnessMap() {
   const size = 256;
@@ -46,6 +50,38 @@ function getBarkRoughnessMap() {
   return cachedBarkRoughness;
 }
 
+let cachedBarkMaterial = null;
+
+function getBarkMaterial() {
+  if (!cachedBarkMaterial) {
+    cachedBarkMaterial = new THREE.MeshStandardMaterial({
+      color: TREE_BARK_COLOR,
+      roughness: 0.95,
+      roughnessMap: getBarkRoughnessMap(),
+      flatShading: true
+    });
+  }
+  return cachedBarkMaterial;
+}
+
+const foliageMaterials = new Map();
+
+function getFoliageMaterial(hex) {
+  if (!foliageMaterials.has(hex)) {
+    foliageMaterials.set(hex, new THREE.MeshStandardMaterial({
+      color: hex,
+      roughness: 0.85,
+      flatShading: true
+    }));
+  }
+  return foliageMaterials.get(hex);
+}
+
+function hash3(x, y, z) {
+  const h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453;
+  return h - Math.floor(h);
+}
+
 export class Tree {
   constructor(scene, x, z) {
     this.scene = scene;
@@ -53,56 +89,125 @@ export class Tree {
     this.group.position.set(x, 0, z);
 
     this.createTrunk();
-    this.createFoliage();
+    this.createBranches();
+    this.createCanopy();
 
     scene.add(this.group);
   }
 
   createTrunk() {
-    const height = 1.5 + Math.random() * 2.0;
-    const radius = 0.12 + Math.random() * 0.1;
-    const geo = new THREE.CylinderGeometry(radius, radius * 1.5, height, 8);
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x6b4226,
-      roughness: 0.95,
-      roughnessMap: getBarkRoughnessMap()
-    });
-    const trunk = new THREE.Mesh(geo, mat);
-    trunk.position.y = height / 2;
+    this.trunkHeight = 1.5 + Math.random() * 2.0;
+    this.trunkRadius = 0.12 + Math.random() * 0.1;
+    this.forkHeight = this.trunkHeight * (0.55 + Math.random() * 0.1);
+
+    const geo = new THREE.CylinderGeometry(
+      this.trunkRadius,
+      this.trunkRadius * 1.6,
+      this.trunkHeight,
+      TREE_TRUNK_SEGMENTS
+    );
+    const trunk = new THREE.Mesh(geo, getBarkMaterial());
+    trunk.position.y = this.trunkHeight / 2;
     trunk.castShadow = true;
+    trunk.receiveShadow = true;
     this.group.add(trunk);
-    this.trunkHeight = height;
   }
 
-  createFoliage() {
-    const numSpheres = 2 + Math.floor(Math.random() * 4);
-    const baseSize = 0.8 + Math.random() * 0.8;
-    const baseGreen = Math.floor(Math.random() * 0x004400);
-    const baseColor = 0x228b22 + baseGreen;
+  createBranches() {
+    const count = 2 + Math.floor(Math.random() * 2);
+    const up = new THREE.Vector3(0, 1, 0);
+    this.branchTips = [];
 
-    for (let i = 0; i < numSpheres; i++) {
-      const size = baseSize * (0.5 + Math.random() * 0.6);
-      const segments = 8 + Math.floor(Math.random() * 4);
-      const geo = new THREE.SphereGeometry(size, segments, segments);
+    for (let i = 0; i < count; i++) {
+      const azimuth = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.7;
+      const tilt = 0.52 + Math.random() * 0.32;
+      const length = this.trunkHeight * (0.35 + Math.random() * 0.2);
 
-      const greenShift = Math.floor(Math.random() * 0x003300);
-      const color = baseColor + greenShift;
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.85 });
-      const sphere = new THREE.Mesh(geo, mat);
+      const dir = new THREE.Vector3(
+        Math.sin(tilt) * Math.cos(azimuth),
+        Math.cos(tilt),
+        Math.sin(tilt) * Math.sin(azimuth)
+      ).normalize();
 
-      const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * baseSize * 0.5;
-      const yOffset = i * baseSize * 0.4;
-
-      sphere.position.set(
-        Math.cos(angle) * dist,
-        this.trunkHeight + size * 0.3 + yOffset,
-        Math.sin(angle) * dist
+      const geo = new THREE.CylinderGeometry(
+        this.trunkRadius * 0.3,
+        this.trunkRadius * 0.55,
+        length,
+        TREE_BRANCH_SEGMENTS
       );
+      geo.translate(0, length / 2, 0);
+      geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, dir));
+      geo.translate(0, this.forkHeight, 0);
 
-      sphere.castShadow = true;
-      sphere.receiveShadow = true;
-      this.group.add(sphere);
+      const branch = new THREE.Mesh(geo, getBarkMaterial());
+      branch.castShadow = true;
+      branch.receiveShadow = true;
+      this.group.add(branch);
+
+      this.branchTips.push({
+        position: new THREE.Vector3(0, this.forkHeight, 0).addScaledVector(dir, length),
+        dir
+      });
     }
+  }
+
+  createCanopy() {
+    const baseSize = 0.8 + Math.random() * 0.8;
+    const hex = TREE_FOLIAGE_COLORS[Math.floor(Math.random() * TREE_FOLIAGE_COLORS.length)];
+    const mat = getFoliageMaterial(hex);
+
+    const crownRadius = baseSize * (0.85 + Math.random() * 0.25);
+    this.addBlob(mat, crownRadius, 0, this.trunkHeight + crownRadius * 0.25, 0);
+
+    for (const tip of this.branchTips) {
+      const radius = baseSize * (0.55 + Math.random() * 0.2);
+      const pos = tip.position.clone().addScaledVector(tip.dir, radius * 0.3);
+      this.addBlob(mat, radius, pos.x, pos.y, pos.z);
+    }
+  }
+
+  addBlob(mat, radius, x, y, z) {
+    const geo = this.createBlobGeometry(radius);
+    geo.computeBoundingBox();
+
+    if (geo.boundingBox.min.y + y < 0) {
+      y = -geo.boundingBox.min.y;
+    }
+
+    const blob = new THREE.Mesh(geo, mat);
+    blob.position.set(x, y, z);
+    blob.castShadow = true;
+    blob.receiveShadow = true;
+    this.group.add(blob);
+  }
+
+  createBlobGeometry(radius) {
+    const geo = new THREE.IcosahedronGeometry(1, TREE_FOLIAGE_DETAIL);
+
+    const pos = geo.attributes.position;
+    const normal = new THREE.Vector3();
+    const vertex = new THREE.Vector3();
+
+    for (let i = 0; i < pos.count; i++) {
+      vertex.fromBufferAttribute(pos, i);
+      const push = hash3(vertex.x, vertex.y, vertex.z) - 0.5;
+      normal.copy(vertex).normalize();
+      pos.setXYZ(
+        i,
+        vertex.x + normal.x * push * TREE_FOLIAGE_NOISE,
+        vertex.y + normal.y * push * TREE_FOLIAGE_NOISE,
+        vertex.z + normal.z * push * TREE_FOLIAGE_NOISE
+      );
+    }
+    pos.needsUpdate = true;
+
+    geo.scale(
+      radius * (0.9 + Math.random() * 0.25),
+      radius * (0.95 + Math.random() * 0.5),
+      radius * (0.9 + Math.random() * 0.25)
+    );
+    geo.computeVertexNormals();
+
+    return geo;
   }
 }
