@@ -37,6 +37,26 @@ export const TREE_FOLIAGE_NOISE = 0.15;
 export const TREE_TRUNK_SEGMENTS = 6;
 export const TREE_BRANCH_SEGMENTS = 5;
 
+// Street lamps
+export const LAMP_HEIGHT = 6;
+export const LAMP_ARM_LENGTH = 3;
+export const LAMP_POLE_RADIUS = 0.09;
+export const LAMP_BULB_RADIUS = 0.32;
+export const LAMP_COLOR = 0xff9a3c;
+export const LAMP_BULB_EMISSIVE = 2.5;
+export const LAMP_POOL_RADIUS = 11;
+export const LAMP_POOL_OPACITY = 0.5;
+export const LAMP_ON_HOUR = 20;
+export const LAMP_OFF_HOUR = 5;
+export const LAMP_FADE_HOURS = 0.35;
+export const LAMP_LIGHT_COUNT = 6;
+export const LAMP_LIGHT_INTENSITY = 70;
+export const LAMP_LIGHT_DISTANCE = 45;
+export const LAMP_LIGHT_ANCHORS = [
+  { x: -90, z: -55 }, { x: 0, z: -55 }, { x: 90, z: -55 },
+  { x: -90, z: 55 }, { x: 0, z: 55 }, { x: 90, z: 55 }
+];
+
 // Cars
 export const CAR_LENGTH = 4;
 export const CAR_WIDTH = 2;

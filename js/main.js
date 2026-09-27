@@ -1,6 +1,7 @@
 import { SceneSetup } from './core/SceneSetup.js';
 import { DayNightCycle } from './core/DayNightCycle.js';
 import { GridManager } from './managers/GridManager.js';
+import { StreetLampManager } from './managers/StreetLampManager.js';
 import { TrafficManager } from './managers/TrafficManager.js';
 import { VehicleManager } from './managers/VehicleManager.js';
 import { PedestrianManager } from './managers/PedestrianManager.js';
@@ -29,6 +30,7 @@ class CityApp {
     }
     this.dayNight = new DayNightCycle(this.sceneSetup);
     this.grid = new GridManager(this.sceneSetup.scene);
+    this.streetLamps = new StreetLampManager(this.sceneSetup.scene, this.dayNight);
     this.pathfindingManager = new PathfindingManager();
     this.trafficManager = new TrafficManager(this.sceneSetup.scene);
     this.vehicleManager = new VehicleManager(this.sceneSetup.scene, this.pathfindingManager);
@@ -93,6 +95,7 @@ class CityApp {
 
     this.dayNight.update(delta * this.speedMultiplier);
     this.grid.updateWindows(this.dayNight.getDayFactor(), delta);
+    this.streetLamps.update();
     this.trafficManager.update(delta);
     this.collisionManager.update();
     this.vehicleManager.update(delta, this.trafficManager.trafficLights, this.cityBounds, this.collisionManager);
